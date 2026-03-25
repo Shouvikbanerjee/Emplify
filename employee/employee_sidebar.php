@@ -88,33 +88,43 @@
 
     <!-- Bottom: User + Logout -->
     <div class="mx-3 mb-4 rounded-xl overflow-hidden"
-         style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);">
+     style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);">
 
         <!-- User info -->
-        <div class="flex items-center gap-3 px-3 py-3"
-             style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <a href="my_profile.php"
+        class="flex items-center gap-3 px-3 py-3 text-sm font-medium transition-colors"
+        style="color: rgba(125, 225, 250, 0.7); border-bottom: 1px solid rgba(175, 204, 209, 0.88);"
+        onmouseover="this.style.color='#8d9ab6'; this.style.background='rgba(9, 42, 61, 0.67)'"
+        onmouseout="this.style.color='rgba(148,163,184,0.7)'; this.style.background=''">
+
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                 style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
                 <?php echo isset($_SESSION['name']) ? strtoupper(substr($_SESSION['name'], 0, 1)) : 'E'; ?>
             </div>
+
             <div class="flex-1 min-w-0">
                 <div class="text-xs font-semibold text-white truncate">
                     <?php echo isset($_SESSION['name']) ? htmlspecialchars($_SESSION['name']) : 'Employee'; ?>
                 </div>
-                <div class="text-xs truncate" style="color: rgba(148,163,184,0.5);">Employee</div>
+                <div class="text-xs truncate" style="color: rgba(148,163,184,0.5);">
+                    Employee
+                </div>
             </div>
-        </div>
+
+        </a>
 
         <!-- Logout -->
         <a href="logout.php"
-           class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors group"
-           style="color: rgba(148,163,184,0.7);"
-           onmouseover="this.style.color='#f87171'; this.style.background='rgba(239,68,68,0.06)'"
-           onmouseout="this.style.color='rgba(148,163,184,0.7)'; this.style.background=''">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                 style="background: rgba(255,255,255,0.05);">
+        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors"
+        style="color: rgba(148,163,184,0.7);"
+        onmouseover="this.style.color='#f87171'; this.style.background='rgba(239,68,68,0.06)'"
+        onmouseout="this.style.color='rgba(148,163,184,0.7)'; this.style.background=''">
+
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style="background: rgba(255,255,255,0.05);">
                 <i class="fas fa-sign-out-alt text-xs"></i>
             </div>
+
             <span>Log Out</span>
         </a>
 
