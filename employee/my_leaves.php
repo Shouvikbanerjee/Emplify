@@ -10,15 +10,60 @@ if (!isset($_SESSION['emp_id'])) {
 $emp_id = $_SESSION['emp_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $start_date = $conn->real_escape_string($_POST['start_date']);
-    $end_date   = $conn->real_escape_string($_POST['end_date']);
-    $leave_type = $conn->real_escape_string($_POST['leave_type']);
-    $reason     = $conn->real_escape_string($_POST['reason']);
-    $stmt = $conn->prepare("INSERT INTO leave_management (emp_id, start_date, end_date, leave_type, reason, status) VALUES (?, ?, ?, ?, ?, 'Pending')");
+
+    $start_date = $_POST['start_date'];
+    $end_date   = $_POST['end_date'];
+    $leave_type = $_POST['leave_type'];
+    $reason     = $_POST['reason'];
+
+    // 🔹 Validate dates
+    if (empty($start_date) || empty($end_date)) {
+        $_SESSION['error_message'] = "Please select valid dates!";
+        header('Location: my_leaves.php');
+        exit();
+    }
+
+    // 🔹 Calculate total leave days
+    $start = new DateTime($start_date);
+    $end   = new DateTime($end_date);
+    $end->modify('+1 day'); // include end date
+    $interval = $start->diff($end);
+    $days = $interval->days;
+
+    if ($days <= 0) {
+        $_SESSION['error_message'] = "Invalid date range!";
+        header('Location: my_leaves.php');
+        exit();
+    }
+
+    // 🔹 Get current leave balance
+    $stmt = $conn->prepare("SELECT leave_balance FROM employee WHERE emp_id=?");
+    $stmt->bind_param("i", $emp_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $emp = $result->fetch_assoc();
+
+    if ($emp['leave_balance'] < $days) {
+        $_SESSION['error_message'] = "Not enough leave balance!";
+        header('Location: my_leaves.php');
+        exit();
+    }
+
+    // 🔹 Insert leave request
+    $stmt = $conn->prepare("INSERT INTO leave_management 
+        (emp_id, start_date, end_date, leave_type, reason, status) 
+        VALUES (?, ?, ?, ?, ?, 'Pending')");
+        
     $stmt->bind_param('issss', $emp_id, $start_date, $end_date, $leave_type, $reason);
-    if ($stmt->execute()) $_SESSION['success_message'] = "Leave request submitted successfully!";
-    else $_SESSION['error_message'] = "Error submitting leave request.";
-    header('Location: my_leaves.php'); exit();
+
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Leave request submitted successfully!";
+    } else {
+        $_SESSION['error_message'] = "Error submitting leave request!";
+    }
+
+    header('Location: my_leaves.php');
+    exit();
 }
 
 $stmt = $conn->prepare("SELECT * FROM leave_management WHERE emp_id = ? ORDER BY start_date DESC");

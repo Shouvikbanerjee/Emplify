@@ -315,13 +315,14 @@ $total = count($employees);
         <div class="px-6 py-5">
             <!-- Avatar and Basic Info -->
             <div class="flex items-center gap-4 mb-6 pb-4" style="border-bottom: 1px solid #f1f5f9;">
-                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold"
-                     style="background: #e0e7ff; color: #4f46e5;" id="modalAvatar">
-                    ID
+                <div class="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center bg-indigo-100">
+                    <img src="../assets/download.png" 
+                        onerror="this.style.display='none'; this.parentNode.innerHTML='Avatar';"
+                        class="w-full h-full object-cover">
                 </div>
                 <div>
-                    <p class="text-sm text-slate-400">Employee ID</p>
-                    <p class="text-lg font-bold text-slate-800" id="modalEmpId">EMP001</p>
+                    <p class="text-sm font-semibold text-slate-900">Employee Details</p>
+                    
                 </div>
             </div>
             
@@ -416,7 +417,7 @@ function handleOverlayClick(event) {
 function viewEmployee(employee) {
     // Update modal content with employee data
     
-    document.getElementById('modalEmpId').textContent = 'EMP' + String(employee.emp_id).padStart(3, '0');
+    
     document.getElementById('modalName').textContent = employee.name || '—';
     document.getElementById('modalEmail').textContent = employee.email || '—';
     document.getElementById('modalPhone').textContent = employee.phone || '—';

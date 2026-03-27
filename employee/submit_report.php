@@ -106,13 +106,13 @@ $total = count($reports);
             <h1 class="text-lg font-bold text-slate-800" style="letter-spacing:-0.2px;">Reports</h1>
             <p class="text-xs text-slate-400 mt-0.5">Submit and track your work reports</p>
         </div>
-        <button onclick="openModal('reportModal')"
+        <!-- <button onclick="openModal('reportModal')"
                 class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all"
                 style="background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 14px rgba(99,102,241,.35);"
                 onmouseover="this.style.boxShadow='0 6px 20px rgba(99,102,241,.5)'"
                 onmouseout="this.style.boxShadow='0 4px 14px rgba(99,102,241,.35)'">
             <i class="fas fa-plus text-xs"></i> Submit Report
-        </button>
+        </button> -->
     </div>
 
     <div class="flex-1 overflow-y-auto p-6 space-y-5">

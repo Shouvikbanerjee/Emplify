@@ -9,6 +9,26 @@ require_once '../config/db.php';
 
 $emp_id = $_SESSION['emp_id'];
 
+
+$current_month = date('Y-m');
+
+// Get last reset month
+$res = mysqli_query($conn, "SELECT last_leave_reset FROM employee WHERE emp_id='$emp_id'");
+$data = mysqli_fetch_assoc($res);
+
+$last_reset = $data['last_leave_reset'] ?? '';
+
+if ($last_reset != $current_month) {
+    // Reset leave_balance to 5
+    mysqli_query($conn, "
+        UPDATE employee 
+        SET leave_balance = 5,
+            last_leave_reset = '$current_month'
+        WHERE emp_id = '$emp_id'
+    ");
+}
+
+
 // Employee data
 $employee_result = $conn->query("SELECT * FROM employee WHERE emp_id = '$emp_id'");
 $employee_data   = $employee_result->fetch_assoc();
@@ -120,18 +140,35 @@ $tasks_due = $tasks_result->num_rows;
             <p class="text-xs text-slate-400 mt-0.5" id="dash-date">—</p>
         </div>
         <a href="my_profile.php?emp_id=<?php echo $_SESSION['emp_id']; ?>"
-           class="flex items-center gap-3 px-3 py-2 rounded-xl transition-all"
-           style="background:#f8fafc; border:1px solid #e2e8f0;"
-           onmouseover="this.style.background='#e0e7ff'" onmouseout="this.style.background='#f8fafc'">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
-                 style="background: linear-gradient(135deg,#6366f1,#8b5cf6);">
-                <?php echo strtoupper(substr($employee_data['name'], 0, 1)); ?>
-            </div>
-            <div class="hidden sm:block">
-                <p class="text-xs font-semibold text-slate-700"><?php echo htmlspecialchars($employee_data['name']); ?></p>
-                <p class="text-xs text-slate-400">View Profile</p>
-            </div>
-            <i class="fas fa-chevron-right text-slate-300 text-xs ml-1"></i>
+            class="flex items-center gap-3 px-3 py-2 rounded-xl transition-all"
+            style="background:#f8fafc; border:1px solid #e2e8f0;"
+            onmouseover="this.style.background='#e0e7ff'" 
+            onmouseout="this.style.background='#f8fafc'">
+
+                <?php if (!empty($employee_data['image']) && file_exists('../uploads/' . $employee_data['image'])): ?>
+
+                    <!-- Employee Image -->
+                    <img src="../uploads/<?php echo htmlspecialchars($employee_data['image']); ?>"
+                        class="w-8 h-8 rounded-xl object-cover border border-gray-200">
+
+                <?php else: ?>
+
+                    <!-- Default Initial -->
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
+                        style="background: linear-gradient(135deg,#6366f1,#8b5cf6);">
+                        <?php echo strtoupper(substr($employee_data['name'], 0, 1)); ?>
+                    </div>
+
+                <?php endif; ?>
+
+                <div class="hidden sm:block">
+                    <p class="text-xs font-semibold text-slate-700">
+                        <?php echo htmlspecialchars($employee_data['name']); ?>
+                    </p>
+                    <p class="text-xs text-slate-400">View Profile</p>
+                </div>
+
+                <i class="fas fa-chevron-right text-slate-300 text-xs ml-1"></i>
         </a>
     </div>
 
@@ -193,7 +230,14 @@ $tasks_due = $tasks_result->num_rows;
                 </div>
                 <div>
                     <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Leave Balance</p>
-                    <p class="text-2xl font-bold text-slate-800">8</p>
+                    <?php
+                        $sql="select * from employee where emp_id='".$emp_id."'";
+                        $res=mysqli_query($conn,$sql);
+                        $row=mysqli_fetch_assoc($res);
+                    ?>
+                    <p class=" font-bold text-slate-800">
+                        <?php echo isset($row['leave_balance']) ? htmlspecialchars($row['leave_balance']) . ' days left' : '0 days left'; ?>
+                    </p>
                 </div>
             </div>
 

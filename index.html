@@ -1,1256 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emplify - Smart Time Management & Employee Tracking</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emplify Login</title>
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            overflow-x: hidden;
-        }
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        li {
-            list-style-type: none;
-        }
-
-        a {
-            text-decoration: none;
-        }
-
-        /* Navigation */
-        .header {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: rgba(26, 35, 126, 0.95);
-            backdrop-filter: blur(15px);
-            z-index: 1000;
-            padding: 0.8rem 0;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 2rem;
-        }
-
-        .logo {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #ffffff;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .logo i {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 32px;
-            list-style: none;
-        }
-
-        .header-btns {
-            display: flex;
-            list-style: none;
-            gap: 1.5rem;
-            align-items: center;
-        }
-
-        .nav-link {
-            color: #ffffff;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .nav-link:hover {
-            color: #4facfe;
-        }
-
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            transition: width 0.3s ease;
-        }
-
-        .nav-link:hover::after {
-            width: 100%;
-        }
-
-        .login-btn {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            color: white;
-            padding: 0.6rem 1.6rem;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            flex-direction: column;
-            cursor: pointer;
-        }
-
-        .mobile-menu-btn span {
-            width: 25px;
-            height: 3px;
-            background: white;
-            margin: 3px 0;
-            transition: 0.3s;
-        }
-
-        .mobile-menu {
-            display: none;
-            padding: 2rem;
-        }
-
-        .menu-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .mobile-nav-ul {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            /* padding: 0 1rem; */
-        }
-
-        .mobile-nav-ul li {
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            background: transparent;
-            transition: all 0.2s;
-        }
-
-        .mobile-nav-ul li:hover {
-            background: rgba(255, 255, 255, 0.1);
-            outline: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .mobile-nav-link {
-            display: block;
-            color: #ffffffdd;
-            font-weight: 400;
-        }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(135deg, #1a237e 0%, #3949ab 50%, #5c6bc0 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="white" opacity="0.1"><path d="M0,100 Q250,0 500,50 T1000,25 L1000,100 Z"></path></svg>') repeat-x;
-            background-size: 1000px 100px;
-            animation: wave 10s linear infinite;
-        }
-
-        @keyframes wave {
-            0% {
-                background-position-x: 0;
-            }
-
-            100% {
-                background-position-x: 1000px;
-            }
-        }
-
-        .hero-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 8rem 2rem 0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            align-items: center;
-            min-height: 100vh;
-            position: relative;
-            z-index: 2;
-        }
-
-        .hero-content {
-            animation: slideInLeft 1s ease-out;
-        }
-
-        .hero-title {
-            font-size: 3.5rem;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
-        }
-
-        .hero-subtitle {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 2rem;
-            line-height: 1.6;
-        }
-
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .cta-primary {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            color: white;
-            padding: 1rem 2.5rem;
-            border: none;
-            border-radius: 30px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .cta-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
-        }
-
-        .cta-secondary {
-            background: transparent;
-            color: white;
-            padding: 1rem 2.5rem;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 30px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .cta-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: white;
-        }
-
-        .hero-visual {
-            position: relative;
-            animation: slideInRight 1s ease-out;
-        }
-
-        .dashboard-mockup {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            /* box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); */
-            transition: all 0.3s ease;
-        }
-
-        .dashboard-mockup:hover {
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .mockup-header {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .mockup-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .dot-red {
-            background: #ff5f57;
-        }
-
-        .dot-yellow {
-            background: #ffbd2e;
-        }
-
-        .dot-green {
-            background: #28ca42;
-        }
-
-        .mockup-content {
-            color: white;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #4facfe;
-        }
-
-        /* Features Section */
-        .features {
-            padding: 4rem 2rem;
-            background: linear-gradient(to bottom, #f8fafc, #ffffff);
-        }
-
-        .features-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1a237e;
-            margin-bottom: 1rem;
-        }
-
-        .section-subtitle {
-            text-align: center;
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 4rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 2.5rem 2rem;
-            border-radius: 15px;
-            /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); */
-            text-align: center;
-            transition: all 0.3s ease;
-            border: 1px solid #dde1eb;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .feature-icon {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            font-size: 2rem;
-            color: white;
-        }
-
-        .feature-title {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #1a237e;
-            margin-bottom: 1rem;
-        }
-
-        .feature-description {
-            color: #666;
-            line-height: 1.6;
-        }
-
-        /* Testimonials Section */
-        .testimonials {
-            padding: 4rem 2rem;
-        }
-
-        .testi-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .testimonials-grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .testimonial-card {
-            background: white;
-            padding: 2.5rem 2rem;
-            border-radius: 15px;
-            /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); */
-            text-align: center;
-            transition: all 0.3s ease;
-            border: 1px solid #dde1eb;
-        }
-
-        .testimonial-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .testimonial-author {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .author-img {
-            width: 3.75rem;
-            height: 3.75rem;
-            border-radius: 50%;
-        }
-
-        .author-name {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .author-title {
-            color: #64748b;
-            font-size: 0.875rem;
-        }
-
-        .stars {
-            display: flex;
-            gap: 0.25rem;
-            color: #f59e0b;
-        }
-
-        .star {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        .card-content {
-            margin-top: 1rem;
-        }
-
-
-        /* Faqs Section */
-        .faqs {
-            padding: 4rem 2rem;
-        }
-
-        .faq-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .faq-wrapper {
-            max-width: 48rem;
-            margin: 0 auto;
-        }
-
-        .accordion {
-            display: flex;
-            flex-flow: column;
-            gap: 5px;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            padding: 0.5rem 0;
-        }
-
-        .accordion-item {
-            border-radius: 0.5rem;
-            border: 1px solid #dde1eb;
-            background: transparent;
-            transition: all 0.3s;
-            overflow: hidden;
-        }
-
-        .accordion-header {
-            width: 100%;
-            text-align: left;
-            background: transparent;
-            border: none;
-            padding: 1rem;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .accordion-header.active {
-            background: #f0f0f6;
-        }
-
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            padding: 0 1rem;
-        }
-
-        .accordion-item.active .accordion-content {
-            max-height: 1000px;
-        }
-
-        .accordion-content p {
-            color: #6b7280;
-            padding-bottom: 1rem;
-        }
-
-        /* Stats Section */
-        .stats {
-            background: linear-gradient(135deg, #1a237e, #3949ab);
-            padding: 4rem 2rem;
-            color: white;
-        }
-
-        .stats-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            text-align: center;
-        }
-
-        .stat-item {
-            padding: 1.5rem;
-        }
-
-        .stat-value {
-            font-size: 3rem;
-            font-weight: 700;
-            color: #4facfe;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        /* Footer */
-        .footer {
-            background: #1a1a1a;
-            color: white;
-            padding: 3rem 2rem 1rem;
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .footer-logo {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .footer-logo i {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .footer-text {
-            opacity: 0.8;
-            margin-bottom: 2rem;
-        }
-
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .social-link {
-            width: 45px;
-            height: 45px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .social-link:hover {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            transform: translateY(-2px);
-        }
-
-        .copyright {
-            padding-top: 2rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            opacity: 0.6;
-        }
-
-        /* Animations */
-        @keyframes slideInLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-50px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(50px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .mobile-menu-btn {
-                display: flex;
-            }
-
-            .mobile-menu {
-                display: none;
-            }
-
-            .hero-container {
-                grid-template-columns: 1fr;
-                text-align: center;
-                gap: 2rem;
-            }
-
-            .hero-title {
-                font-size: 2.5rem;
-            }
-
-            .hero-subtitle {
-                font-size: 1.1rem;
-            }
-
-            .cta-buttons {
-                justify-content: center;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-container {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .section-title {
-                font-size: 2rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .nav-container {
-                padding: 0 1rem;
-            }
-
-            .mobile-menu-btn {
-                display: flex;
-            }
-
-            .mobile-menu {
-                display: none;
-            }
-
-            .hero-container {
-                padding: 10rem 1rem 0;
-            }
-
-            .hero-title {
-                font-size: 2rem;
-            }
-
-            .cta-primary,
-            .cta-secondary {
-                padding: 0.8rem 1.5rem;
-                font-size: 1rem;
-            }
-
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
-
-            .stat-value {
-                font-size: 2.5rem;
-            }
-        }
-    </style>
 </head>
 
-<body>
-    <!-- Navigation -->
-    <header class="header">
-        <div class="nav-container">
-            <a href="#" class="logo">
-                <i class="fas fa-clock"></i>
-                Emplify
-            </a>
+<body class="min-h-screen bg-gradient-to-br from-indigo-600 via-cyan-600 to-blue-500 flex items-center justify-center p-4">
 
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="#home" class="nav-link">Home</a></li>
-                    <li><a href="#features" class="nav-link">Features</a></li>
-                    <li><a href="#testimonials" class="nav-link">Testimonial</a></li>
-                    <li><a href="#faq" class="nav-link">FAQ</a></li>
-                </ul>
-            </nav>
+<!-- Main Card -->
+<div class="w-full max-w-5xl bg-white/20 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white/30">
 
-            <div class="header-btns">
-                <li><a href="login.html" class="login-btn">Login</a></li>
+    <!-- 🔵 LEFT SIDE -->
+    <!-- 🔵 LEFT SIDE (UPGRADED) -->
+<div class="relative w-full md:w-1/2 overflow-hidden flex flex-col justify-center items-center p-10 text-white">
 
-                <div class="mobile-menu-btn" id="menu-toggle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+    <!-- 🌌 Premium Gradient Background -->
+<div class="absolute inset-0 bg-gradient-to-br from-[#0f172a] via-[#1e3a8a] to-[#06b6d4]"></div>
+
+<!-- ✨ Glow Effects (fixed + improved) -->
+<div class="absolute w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl top-[-60px] left-[-60px] animate-pulse"></div>
+<div class="absolute w-80 h-80 bg-cyan-400/20 rounded-full blur-3xl bottom-[-60px] right-[-60px]"></div>
+
+<!-- 🔥 Extra Glow Layer -->
+<div class="absolute w-60 h-60 bg-blue-400/10 rounded-full blur-2xl top-1/2 left-1/3"></div>
+
+<!-- 🌊 Smooth Gradient Curve -->
+<svg class="absolute right-0 top-0 h-full hidden md:block" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="curveGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#1e3a8a"/>
+            <stop offset="100%" stop-color="#06b6d4"/>
+        </linearGradient>
+    </defs>
+    <path d="M0,0 C70,0 30,100 100,100 L100,0 Z" fill="url(#curveGradient)"/>
+</svg>
+
+    <!-- Content -->
+    <div class="relative z-10 text-center">
+
+        <!-- Icon -->
+        <div class="w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-xl border border-white/30 mx-auto">
+    <i class="fas fa-bolt text-3xl"></i>
+</div>
+
+  <h1 class="text-3xl font-extrabold mb-2 leading-tight bg-gradient-to-r from-cyan-200 via-white to-blue-300 bg-clip-text text-transparent">
+    Welcome to Emplify
+</h1>
+
+<p class="text-sm text-blue-100/90 mb-6 max-w-xs mx-auto">
+    Smart employee management system with real-time tracking and powerful insights.
+</p>
+
+        <!-- Features -->
+        <div class="space-y-3 text-sm text-white/90">
+
+            <div class="flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle text-green-300"></i>
+                Attendance Tracking
             </div>
+
+            <div class="flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle text-green-300"></i>
+                Leave Management
+            </div>
+
+            <div class="flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle text-green-300"></i>
+                Task & Report Management
+            </div>
+
         </div>
-        <!---Mobile Navigation Bar---->
-        <div class="mobile-menu" id="mobile-menu">
-            <div class="menu-container">
-                <ul class="mobile-nav-ul">
-                    <li><a href="#features" class="mobile-nav-link">Features</a></li>
-                    <li><a href="#testimonials" class="mobile-nav-link">Testimonial</a></li>
-                    <li><a href="#pricing" class="mobile-nav-link">Resources</a></li>
-                    <li><a href="#faq" class="mobile-nav-link">FAQ</a></li>
-                </ul>
+
+    </div>
+</div>
+
+    <!-- ⚪ RIGHT SIDE -->
+    <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white/80 backdrop-blur-lg">
+
+        <h2 class="text-2xl font-bold text-gray-800 mb-8 text-center">Log In</h2>
+
+        <form action="login.php" method="POST" class="space-y-6">
+
+            <!-- Floating Input -->
+            <div class="relative">
+                <input type="text" name="username" required
+                    class="peer w-full border-b-2 border-gray-300 focus:border-indigo-500 outline-none py-2 bg-transparent"
+                    placeholder=" ">
+                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all 
+                    peer-placeholder-shown:top-2 peer-placeholder-shown:text-sm
+                    peer-focus:-top-3 peer-focus:text-xs peer-focus:text-indigo-500">
+                    Username
+                </label>
             </div>
-        </div>
-    </header>
 
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <div class="hero-container">
-            <div class="hero-content">
-                <h1 class="hero-title">Smart Team Management System</h1>
-                <p class="hero-subtitle">
-                    Streamline your workforce with intelligent attendance tracking,
-                    team management, and comprehensive reporting that enhances workplace efficiency.
-                </p>
-                <div class="cta-buttons">
-                    <a href="#" class="cta-primary">Get Started</a>
-                </div>
+            
+
+            <div class="relative">
+                <input type="password" id="password" name="password" required
+                    class="peer w-full border-b-2 border-gray-300 focus:border-indigo-500 outline-none py-2 bg-transparent"
+                    placeholder=" ">
+                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all 
+                    peer-placeholder-shown:top-2 peer-placeholder-shown:text-sm
+                    peer-focus:-top-3 peer-focus:text-xs peer-focus:text-indigo-500">
+                    Password
+                </label>
+
+                <i id="togglePassword"
+                   class="fas fa-eye absolute right-2 top-2 text-gray-500 cursor-pointer"></i>
             </div>
-            <div class="hero-visual">
-                <div class="dashboard-mockup">
-                    <div class="mockup-header">
-                        <div class="mockup-dot dot-red"></div>
-                        <div class="mockup-dot dot-yellow"></div>
-                        <div class="mockup-dot dot-green"></div>
-                    </div>
-                    <div class="mockup-content">
-                        <div class="stat-card">
-                            <div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Team Members</div>
-                                <div class="stat-number">247</div>
-                            </div>
-                            <i class="fas fa-users" style="font-size: 2rem; opacity: 0.6;"></i>
-                        </div>
-                        <div class="stat-card">
-                            <div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Attendance Today</div>
-                                <div class="stat-number">94%</div>
-                            </div>
-                            <i class="fas fa-calendar-check" style="font-size: 2rem; opacity: 0.6;"></i>
-                        </div>
-                        <div class="stat-card">
-                            <div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Reports Generated</div>
-                                <div class="stat-number">156</div>
-                            </div>
-                            <i class="fas fa-chart-bar" style="font-size: 2rem; opacity: 0.6;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="features-container">
-            <h2 class="section-title">Core Features</h2>
-            <p class="section-subtitle">
-                Comprehensive employee management tools designed for modern workplaces
-            </p>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-users-cog"></i>
-                    </div>
-                    <h3 class="feature-title">Team Management</h3>
-                    <p class="feature-description">
-                        Organize teams efficiently with role-based access, department structuring, and streamlined
-                        workforce coordination.
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <h3 class="feature-title">Smart Attendance</h3>
-                    <p class="feature-description">
-                        Automated attendance tracking with flexible scheduling, leave management, and accurate time
-                        logging.
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <h3 class="feature-title">Work Management</h3>
-                    <p class="feature-description">
-                        Track project progress, assign tasks, monitor deadlines, and maintain workflow transparency
-                        across teams.
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3 class="feature-title">Reports & Analytics</h3>
-                    <p class="feature-description">
-                        Generate comprehensive reports on attendance, performance metrics, and team productivity
-                        insights.
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h3 class="feature-title">Feedback System</h3>
-                    <p class="feature-description">
-                        Structured feedback collection, performance reviews, and continuous improvement tracking for
-                        employee development.
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h3 class="feature-title">Secure & Reliable</h3>
-                    <p class="feature-description">
-                        Enterprise-grade security with data encryption, backup systems, and compliance with privacy
-                        regulations.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
+            
 
-    <!-- Testimonials Section -->
-    <section class="testimonials" id="testimonials">
-        <div class="testi-container">
-            <h2 class="section-title">Loved by Teams Worldwide</h2>
-            <p class="section-subtitle">
-                See what our customers saying about Emplify
-            </p>
-            <div class="testimonials-grid">
-                <div class="card testimonial-card"
-                    style="opacity: 1; transform: translateY(0px); transition: opacity 0.6s, transform 0.6s;">
-                    <div class="card-header">
-                        <div class="testimonial-author">
-                            <img src="/placeholder.svg?height=60&amp;width=60" alt="Sarah Johnson" class="author-img">
-                            <div class="author-info">
-                                <h4 class="author-name">Sarah Johnson</h4>
-                                <p class="author-title">Product Manager, TechCorp</p>
-                            </div>
-                        </div>
-                        <div class="stars">
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <p class="testimonial-text">
-                            "StreamLine has transformed how our team works. We've cut meeting time by 50% and
-                            increased delivery
-                            speed by 35%. The intuitive interface made adoption across our organization seamless."
-                        </p>
-                    </div>
-                </div>
-                <div class="card testimonial-card"
-                    style="opacity: 1; transform: translateY(0px); transition: opacity 0.6s, transform 0.6s;">
-                    <div class="card-header">
-                        <div class="testimonial-author">
-                            <img src="/placeholder.svg?height=60&amp;width=60" alt="Michael Chen" class="author-img">
-                            <div class="author-info">
-                                <h4 class="author-name">Michael Chen</h4>
-                                <p class="author-title">CTO, GrowthStartup</p>
-                            </div>
-                        </div>
-                        <div class="stars">
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                            <svg class="star" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                                </path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <p class="testimonial-text">
-                            "As we scaled from 10 to 100 employees, StreamLine scaled with us. The analytics
-                            dashboard gives me
-                            a clear picture of our team's performance, and the automation features save us countless
-                            hours each
-                            week."
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+            <!-- Button -->
+            <button type="submit"
+                class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-500 text-white font-semibold shadow-lg hover:scale-105 transition-all duration-300">
+                Sign In
+            </button>
 
-    <!-- Faqs Section -->
-    <section class="faqs" id="faq">
-        <div class="faq-container">
-            <h2 class="section-title">Frequently Asked Questions</h2>
-            <p class="section-subtitle">
-                Find answers to most common questions about us
-            </p>
-            <div class="faq-wrapper">
-                <div class="accordion">
-                    <div class="accordion-item animate-on-scroll visible" style="animation-delay: 0.05s;">
-                        <button class="accordion-header">
-                            <span>How does this system works?</span>
-                            <svg class="accordion-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m6 9 6 6 6-6"></path>
-                            </svg>
-                        </button>
-                        <div class="accordion-content">
-                            <p>This is a digital solution that helps organizations, to monitor employee activities,
-                                track attendance, manage leaves, assign tasks. It ensures organization productivity and
-                                improve its overall workforce.</p>
-                        </div>
-                    </div>
-                    <div class="accordion-item animate-on-scroll visible" style="animation-delay: 0.1s;">
-                        <button class="accordion-header">
-                            <span>Is it accessible from all types of device?</span>
-                            <svg class="accordion-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m6 9 6 6 6-6"></path>
-                            </svg>
-                        </button>
-                        <div class="accordion-content">
-                            <p>Yes absolutely, you can oparate and utilize it from any device. It is completely
-                                responsive for all screen-sized devices. It works smoothly on every types of device with
-                                interactive UI/UX design.</p>
-                        </div>
-                    </div>
-                    <div class="accordion-item animate-on-scroll visible" style="animation-delay: 0.15s;">
-                        <button class="accordion-header">
-                            <span>Is this free and easily accessible for anyone?</span>
-                            <svg class="accordion-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m6 9 6 6 6-6"></path>
-                            </svg>
-                        </button>
-                        <div class="accordion-content">
-                            <p>Yes, it is completely free and easily accessible for employees and admins or managers. By
-                                signing up as a new employee, you can use it seamlessly without any paid plan.</p>
-                        </div>
-                    </div>
-                    <div class="accordion-item animate-on-scroll visible" style="animation-delay: 0.2s;">
-                        <button class="accordion-header">
-                            <span>What key features are offered?</span>
-                            <svg class="accordion-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m6 9 6 6 6-6"></path>
-                            </svg>
-                        </button>
-                        <div class="accordion-content">
-                            <p>Key features include different role based access for both admins and employees,
-                                attendance management, leave tracking, employee profile customization, clean managable
-                                dashboard.</p>
-                        </div>
-                    </div>
-                    <div class="accordion-item animate-on-scroll visible" style="animation-delay: 0.25s;">
-                        <button class="accordion-header">
-                            <span>How secure is my data?</span>
-                            <svg class="accordion-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m6 9 6 6 6-6"></path>
-                            </svg>
-                        </button>
-                        <div class="accordion-content">
-                            <p>We take security very seriously. All data is encrypted both in transit and at rest. We
-                                use industry-standard security practices and regularly undergo security audits.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+        </form>
 
-    <!-- Stats Section -->
-    <section class="stats">
-        <div class="stats-container">
-            <div class="stat-item">
-                <span class="stat-value">500+</span>
-                <span class="stat-label">Companies Trust Us</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">25K+</span>
-                <span class="stat-label">Employees Managed</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">99.5%</span>
-                <span class="stat-label">System Reliability</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">24/7</span>
-                <span class="stat-label">Customer Support</span>
-            </div>
-        </div>
-    </section>
+        <p class="text-xs text-gray-500 text-center mt-6">
+            © 2026 Emplify. All rights reserved.
+        </p>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-logo">
-                <i class="fas fa-clock"></i>
-                Emplify
-            </div>
-            <p class="footer-text">
-                Empowering teams with smart team management solutions
-            </p>
-            <div class="social-links">
-                <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
-                <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
-                <a href="#" class="social-link"><i class="fas fa-phone"></i></a>
-            </div>
-            <div class="copyright">
-                <p>&copy; 2025 Emplify. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    </div>
 
-    <script>
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
+</div>
 
-        // Navbar background change on scroll
-        window.addEventListener('scroll', () => {
-            const header = document.querySelector('.header');
-            if (window.scrollY > 100) {
-                header.style.background = 'rgba(26, 35, 126, 0.98)';
-            } else {
-                header.style.background = 'rgba(26, 35, 126, 0.95)';
-            }
-        });
+<!-- JS -->
+<script>
+const toggle = document.getElementById('togglePassword');
+const password = document.getElementById('password');
 
-        // Mobile menu toggle (basic implementation)
-        const menuToggle = document.querySelector('#menu-toggle');
-        const mobileMenu = document.querySelector('.mobile-menu');
+toggle.addEventListener('click', () => {
+    const type = password.type === 'password' ? 'text' : 'password';
+    password.type = type;
+    toggle.classList.toggle('fa-eye');
+    toggle.classList.toggle('fa-eye-slash');
+});
+</script>
 
-        menuToggle.addEventListener('click', () => {
-            mobileMenu.style.display = mobileMenu.style.display === 'flex' ? 'none' : 'flex';
-        });
-
-        // Close mobile menu when clicking on a link
-        const mobileLinks = document.querySelectorAll('.mobile-nav-link');
-        mobileLinks.forEach(link => {
-            link.addEventListener('click', function () {
-                menuToggle.classList.remove('active');
-                mobileMenu.classList.remove('active');
-            });
-        });
-
-        // Add scroll animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        // Observe feature cards
-        document.querySelectorAll('.feature-card').forEach(card => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(30px)';
-            card.style.transition = 'all 0.6s ease';
-            observer.observe(card);
-        });
-
-        // FAQ accordion
-        const accordionHeaders = document.querySelectorAll('.accordion-header');
-
-        accordionHeaders.forEach(header => {
-            header.addEventListener('click', function () {
-                const accordionItem = this.parentElement;
-                const isActive = accordionItem.classList.contains('active');
-
-                // Close all accordion items
-                document.querySelectorAll('.accordion-item').forEach(item => {
-                    item.classList.remove('active');
-                    item.querySelector('.accordion-header').classList.remove('active');
-                });
-
-                // If the clicked item wasn't active, open it
-                if (!isActive) {
-                    accordionItem.classList.add('active');
-                    this.classList.add('active');
-                }
-            });
-        });
-    </script>
 </body>
-
 </html>

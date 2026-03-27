@@ -15,11 +15,12 @@ $query = "
         reports.description  AS description,
         reports.created_at   AS submitted_on,
         GROUP_CONCAT(report_images.image_path ORDER BY report_images.image_id SEPARATOR ',') AS image_paths
-    FROM task_assigned
-    INNER JOIN employee ON employee.emp_id = task_assigned.emp_id
-    INNER JOIN reports  ON reports.emp_id  = task_assigned.emp_id
-    LEFT  JOIN report_images ON report_images.report_id = reports.report_id
-    GROUP BY reports.report_id, task_assigned.task_id
+    FROM reports
+    INNER JOIN employee ON employee.emp_id = reports.emp_id
+    LEFT JOIN task_assigned ON task_assigned.emp_id = reports.emp_id
+                            AND task_assigned.task_id = reports.task_id
+    LEFT JOIN report_images ON report_images.report_id = reports.report_id
+    GROUP BY reports.report_id
     ORDER BY reports.created_at DESC
 ";
 
@@ -331,7 +332,9 @@ $total = count($reports);
                             </div>
                             <div>
                                 <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Task</p>
-                                <p class="text-sm text-slate-600"><?php echo htmlspecialchars($row['task_title']); ?></p>
+                                <p class="text-sm text-slate-600">
+                                    <?php echo htmlspecialchars($row['task_title'] ?? 'N/A'); ?>
+                                </p>
                             </div>
                         </div>
 
@@ -363,7 +366,6 @@ $total = count($reports);
                                 $imgSrc  = htmlspecialchars($imgPath);
                             ?>
                             <?php if ($j === 5 && count($images) > 6): ?>
-                            <!-- +more overlay on last visible -->
                             <a href="<?php echo $imgSrc; ?>"
                                data-fancybox="gallery-<?php echo $i; ?>"
                                class="relative block">
@@ -421,7 +423,6 @@ let customDateTo = '';
 let selectedMonth = '';
 let selectedYear = '';
 
-// Set date filter
 function setDateFilter(filter, btn) {
     activeDateFilter = filter;
     customDateFrom = '';
@@ -429,17 +430,12 @@ function setDateFilter(filter, btn) {
     selectedMonth = '';
     selectedYear = '';
     
-    // Reset month/year selects
     document.getElementById('monthSelect').value = '';
     document.getElementById('yearSelect').value = '';
     
-    // Update button styles
-    document.querySelectorAll('.date-filter-btn').forEach(b => {
-        b.classList.remove('active');
-    });
+    document.querySelectorAll('.date-filter-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
     
-    // Clear custom date inputs
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
     document.getElementById('clearDateBtn').classList.add('hidden');
@@ -447,26 +443,18 @@ function setDateFilter(filter, btn) {
     filterReports();
 }
 
-// Apply custom date range
 function applyCustomDateRange() {
     customDateFrom = document.getElementById('dateFrom').value;
     customDateTo = document.getElementById('dateTo').value;
     selectedMonth = '';
     selectedYear = '';
     
-    // Reset month/year selects
     document.getElementById('monthSelect').value = '';
     document.getElementById('yearSelect').value = '';
     
     if (customDateFrom || customDateTo) {
         activeDateFilter = 'custom';
-        
-        // Reset quick date buttons
-        document.querySelectorAll('.date-filter-btn').forEach(b => {
-            b.classList.remove('active');
-        });
-        
-        // Show clear button
+        document.querySelectorAll('.date-filter-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('clearDateBtn').classList.remove('hidden');
     } else {
         document.getElementById('clearDateBtn').classList.add('hidden');
@@ -475,20 +463,13 @@ function applyCustomDateRange() {
     filterReports();
 }
 
-// Apply month/year filter
 function applyMonthYearFilter() {
     selectedMonth = document.getElementById('monthSelect').value;
     selectedYear = document.getElementById('yearSelect').value;
     
     if (selectedMonth || selectedYear) {
         activeDateFilter = 'monthYear';
-        
-        // Reset quick date buttons
-        document.querySelectorAll('.date-filter-btn').forEach(b => {
-            b.classList.remove('active');
-        });
-        
-        // Clear custom date inputs
+        document.querySelectorAll('.date-filter-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
         document.getElementById('clearDateBtn').classList.remove('hidden');
@@ -501,7 +482,6 @@ function applyMonthYearFilter() {
     filterReports();
 }
 
-// Clear date filter
 function clearDateFilter() {
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
@@ -515,19 +495,13 @@ function clearDateFilter() {
     selectedYear = '';
     activeDateFilter = 'all';
     
-    // Update buttons
     document.querySelectorAll('.date-filter-btn').forEach(b => {
-        if (b.textContent.trim() === 'All Reports') {
-            b.classList.add('active');
-        } else {
-            b.classList.remove('active');
-        }
+        b.classList.toggle('active', b.textContent.trim() === 'All Reports');
     });
     
     filterReports();
 }
 
-// Check if date matches filter
 function dateMatchesFilter(dateStr) {
     if (!dateStr) return false;
     
@@ -537,107 +511,63 @@ function dateMatchesFilter(dateStr) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Yesterday
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    // This week start (Monday)
     const weekStart = new Date(today);
     const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-    weekStart.setDate(diff);
+    weekStart.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
     weekStart.setHours(0, 0, 0, 0);
     
-    // Last week
     const lastWeekStart = new Date(weekStart);
     lastWeekStart.setDate(lastWeekStart.getDate() - 7);
     const lastWeekEnd = new Date(weekStart);
     lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
     
-    // This month start
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    // Last month
     const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-    
-    // This year start
     const yearStart = new Date(today.getFullYear(), 0, 1);
     
-    switch(activeDateFilter) {
-        case 'today':
-            return date.getTime() === today.getTime();
-            
-        case 'yesterday':
-            return date.getTime() === yesterday.getTime();
-            
-        case 'thisWeek':
-            return date >= weekStart && date <= today;
-            
-        case 'lastWeek':
-            return date >= lastWeekStart && date <= lastWeekEnd;
-            
-        case 'thisMonth':
-            return date >= monthStart && date <= today;
-            
-        case 'lastMonth':
-            return date >= lastMonthStart && date <= lastMonthEnd;
-            
-        case 'thisYear':
-            return date >= yearStart && date <= today;
-            
+    switch (activeDateFilter) {
+        case 'today':     return date.getTime() === today.getTime();
+        case 'yesterday': return date.getTime() === yesterday.getTime();
+        case 'thisWeek':  return date >= weekStart && date <= today;
+        case 'lastWeek':  return date >= lastWeekStart && date <= lastWeekEnd;
+        case 'thisMonth': return date >= monthStart && date <= today;
+        case 'lastMonth': return date >= lastMonthStart && date <= lastMonthEnd;
+        case 'thisYear':  return date >= yearStart && date <= today;
         case 'custom':
-            if (customDateFrom && customDateTo) {
-                return dateStr >= customDateFrom && dateStr <= customDateTo;
-            } else if (customDateFrom) {
-                return dateStr >= customDateFrom;
-            } else if (customDateTo) {
-                return dateStr <= customDateTo;
-            }
+            const d = dateStr.split(' ')[0]; // strip time component
+            if (customDateFrom && customDateTo) return d >= customDateFrom && d <= customDateTo;
+            if (customDateFrom) return d >= customDateFrom;
+            if (customDateTo)   return d <= customDateTo;
             return true;
-            
         case 'monthYear':
-            const reportDate = new Date(dateStr);
-            const reportMonth = String(reportDate.getMonth() + 1).padStart(2, '0');
-            const reportYear = reportDate.getFullYear().toString();
-            
-            let monthMatch = !selectedMonth || reportMonth === selectedMonth;
-            let yearMatch = !selectedYear || reportYear === selectedYear;
-            
-            return monthMatch && yearMatch;
-            
-        case 'all':
-        default:
-            return true;
+            const rDate  = new Date(dateStr);
+            const rMonth = String(rDate.getMonth() + 1).padStart(2, '0');
+            const rYear  = rDate.getFullYear().toString();
+            return (!selectedMonth || rMonth === selectedMonth) &&
+                   (!selectedYear  || rYear  === selectedYear);
+        default: return true;
     }
 }
 
-// Filter reports
 function filterReports() {
     const searchQuery = document.getElementById('searchInput').value.toLowerCase();
     const cards = document.querySelectorAll('#reportGrid .report-card');
-    
     let visibleCount = 0;
     
     cards.forEach(card => {
-        const searchText = card.dataset.search;
-        const dateStr = card.dataset.date;
-        
-        const searchMatch = searchText.includes(searchQuery);
-        const dateMatch = dateMatchesFilter(dateStr);
-        
-        const visible = searchMatch && dateMatch;
-        
+        const visible = card.dataset.search.includes(searchQuery) &&
+                        dateMatchesFilter(card.dataset.date);
         card.style.display = visible ? '' : 'none';
-        
         if (visible) visibleCount++;
     });
     
-    // Update total count
     document.getElementById('totalReports').textContent = visibleCount;
     document.getElementById('reportLabel').textContent = visibleCount === 1 ? 'report' : 'reports';
     
-    // Show empty state message if no cards visible
     const reportGrid = document.getElementById('reportGrid');
     let emptyMessage = document.getElementById('emptyFilterMessage');
     
@@ -661,12 +591,9 @@ function filterReports() {
     }
 }
 
-// Initialize with all reports
 window.addEventListener('DOMContentLoaded', () => {
     const allReportsBtn = document.querySelector('.date-filter-btn');
-    if (allReportsBtn) {
-        setDateFilter('all', allReportsBtn);
-    }
+    if (allReportsBtn) setDateFilter('all', allReportsBtn);
 });
 </script>
 
