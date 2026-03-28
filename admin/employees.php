@@ -4,17 +4,46 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || !isset(
     header('Location: login.html');
     exit();
 }
-
 require_once '../config/db.php';
 
-// Fetch all employees
-$query = "SELECT e.*, d.name as department_name, ds.name as designation_name 
-          FROM employee e 
-          LEFT JOIN department d ON e.dep_id = d.dep_id 
-          LEFT JOIN designation ds ON e.desg_id = ds.desg_id";
-$result = $conn->query($query);
-$employees = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
-$total = count($employees);
+// ── Handle ADD ───────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add') {
+    $name=$_POST['name']; $email=$_POST['email']; $phone=$_POST['phone'];
+    $gender=$_POST['gender']; $dob=$_POST['dob']; $address=$_POST['address'];
+    $dep_id=(int)$_POST['dep_id']; $desg_id=(int)$_POST['desg_id'];
+    $username=$_POST['username'];
+    $password=password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $conn->begin_transaction();
+    try {
+        $s=$conn->prepare("INSERT INTO employee (name,email,phone,gender,dob,address,dep_id,desg_id) VALUES (?,?,?,?,?,?,?,?)");
+        $s->bind_param("ssssssii",$name,$email,$phone,$gender,$dob,$address,$dep_id,$desg_id);
+        $s->execute(); $eid=$conn->insert_id;
+        $s2=$conn->prepare("INSERT INTO login (username,password,emp_id) VALUES (?,?,?)");
+        $s2->bind_param("ssi",$username,$password,$eid);
+        $s2->execute();
+        $conn->commit();
+        $_SESSION['flash']=['type'=>'success','msg'=>"Employee <strong>".htmlspecialchars($name)."</strong> added successfully!"];
+    } catch(Exception $e){ $conn->rollback(); $_SESSION['flash']=['type'=>'error','msg'=>"Failed: ".$e->getMessage()]; }
+    header('Location: employees.php'); exit();
+}
+
+// ── Handle EDIT ──────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
+    $eid=(int)$_POST['emp_id']; $name=$_POST['name']; $email=$_POST['email'];
+    $phone=$_POST['phone']; $gender=$_POST['gender']; $dob=$_POST['dob'];
+    $address=$_POST['address']; $dep_id=(int)$_POST['dep_id']; $desg_id=(int)$_POST['desg_id'];
+    $s=$conn->prepare("UPDATE employee SET name=?,email=?,phone=?,gender=?,dob=?,address=?,dep_id=?,desg_id=? WHERE emp_id=?");
+    $s->bind_param("ssssssiis",$name,$email,$phone,$gender,$dob,$address,$dep_id,$desg_id,$eid);
+    if($s->execute()) $_SESSION['flash']=['type'=>'success','msg'=>"Employee <strong>".htmlspecialchars($name)."</strong> updated!"];
+    else $_SESSION['flash']=['type'=>'error','msg'=>"Update failed: ".$conn->error];
+    header('Location: employees.php'); exit();
+}
+
+// ── Fetch data ───────────────────────────────────────────────────
+$employees=$conn->query("SELECT e.*,d.name as department_name,ds.name as designation_name FROM employee e LEFT JOIN department d ON e.dep_id=d.dep_id LEFT JOIN designation ds ON e.desg_id=ds.desg_id")->fetch_all(MYSQLI_ASSOC);
+$total=count($employees);
+$departments=$conn->query("SELECT dep_id,name FROM department ORDER BY name")->fetch_all(MYSQLI_ASSOC);
+$designations=$conn->query("SELECT desg_id,name FROM designation ORDER BY name")->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,109 +56,29 @@ $total = count($employees);
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
     <style>
-        * { font-family: 'DM Sans', sans-serif; }
-        body { background: #f1f5f9; height: 100vh; overflow: hidden; }
-        .main-area {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            margin-left: 0;
-        }
-        @media (min-width: 1024px) {
-            .main-area { margin-left: 256px; }
-        }
-        .table-row {
-            border-bottom: 1px solid #f1f5f9;
-            transition: background 0.15s;
-        }
-        .table-row:hover { background: #f8fafc; }
-        .table-row:last-child { border-bottom: none; }
-        .avatar {
-            width: 34px; height: 34px;
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 600; font-size: 13px;
-            flex-shrink: 0;
-        }
-        .search-bar {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 10px 16px;
-            font-size: 14px;
-            color: #334155;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .search-bar:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
-        }
-        .btn-action {
-            width: 32px; height: 32px;
-            border-radius: 8px;
-            display: inline-flex; align-items: center; justify-content: center;
-            transition: all 0.15s;
-            font-size: 12px;
-        }
-        .btn-action:hover { transform: scale(1.08); }
-        
-        /* Modal Styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            background: rgba(15,23,42,0.5);
-            backdrop-filter: blur(2px);
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-overlay.open { display: flex; }
-        .modal-box {
-            background: #fff;
-            border-radius: 24px;
-            width: 100%;
-            max-width: 500px;
-            margin: 16px;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.18);
-            animation: modalIn 0.2s ease;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: scale(0.96) translateY(10px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        
-        /* Info card styles */
-        .info-row {
-            display: flex;
-            padding: 12px 16px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            width: 110px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        .info-value {
-            flex: 1;
-            font-size: 14px;
-            color: #0f172a;
-            font-weight: 500;
-        }
-        
-        /* Utility classes */
-        .opacity-50 { opacity: 0.5; }
-        .pointer-events-none { pointer-events: none; }
+        *{font-family:'DM Sans',sans-serif}
+        body{background:#f1f5f9;height:100vh;overflow:hidden}
+        .main-area{display:flex;flex-direction:column;height:100vh;overflow:hidden;margin-left:0}
+        @media(min-width:1024px){.main-area{margin-left:256px}}
+        .table-row{border-bottom:1px solid #f1f5f9;transition:background .15s}
+        .table-row:hover{background:#f8fafc}
+        .table-row:last-child{border-bottom:none}
+        .avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+        .search-bar{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 16px;font-size:14px;color:#334155;outline:none;transition:border-color .2s,box-shadow .2s}
+        .search-bar:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+        .btn-action{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;font-size:12px;border:none;cursor:pointer}
+        .btn-action:hover{transform:scale(1.08)}
+        .modal-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.5);backdrop-filter:blur(2px);align-items:center;justify-content:center}
+        .modal-overlay.open{display:flex}
+        .modal-box{background:#fff;border-radius:20px;width:100%;max-width:540px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);animation:modalIn .2s ease;max-height:90vh;overflow-y:auto}
+        .modal-sm{max-width:400px}
+        @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        .form-input{width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;color:#334155;outline:none;transition:border-color .2s,box-shadow .2s;font-family:'DM Sans',sans-serif;background:#fff}
+        .form-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+        .info-row{display:flex;padding:11px 0;border-bottom:1px solid #f8fafc}
+        .info-row:last-child{border-bottom:none}
+        .info-label{width:105px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;padding-top:1px;flex-shrink:0}
+        .info-value{flex:1;font-size:14px;color:#0f172a;font-weight:500}
     </style>
 </head>
 <body>
@@ -137,58 +86,53 @@ $total = count($employees);
 <?php include('../includes/sidebar.php'); ?>
 
 <div class="main-area">
-
-    <!-- Navbar -->
-    <div class="flex items-center justify-between px-6 py-4 bg-white"
-         style="border-bottom: 1px solid #f1f5f9; min-height: 64px;">
+    <div class="flex items-center justify-between px-6 py-4 bg-white" style="border-bottom:1px solid #f1f5f9;min-height:64px;">
         <div>
-            <h1 class="text-lg font-bold text-slate-800" style="letter-spacing: -0.2px;">Employees</h1>
+            <h1 class="text-lg font-bold text-slate-800" style="letter-spacing:-0.2px">Employees</h1>
             <p class="text-xs text-slate-400 mt-0.5">Manage your workforce</p>
         </div>
-        <a href="register.php"
-           class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all"
-           style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 4px 14px rgba(99,102,241,0.35);"
-           onmouseover="this.style.boxShadow='0 6px 20px rgba(99,102,241,0.5)'"
-           onmouseout="this.style.boxShadow='0 4px 14px rgba(99,102,241,0.35)'">
+        <button onclick="openModal('addModal')"
+                class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl text-white"
+                style="background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 14px rgba(99,102,241,.35);"
+                onmouseover="this.style.boxShadow='0 6px 20px rgba(99,102,241,.5)'"
+                onmouseout="this.style.boxShadow='0 4px 14px rgba(99,102,241,.35)'">
             <i class="fas fa-plus text-xs"></i> Add Employee
-        </a>
+        </button>
     </div>
 
-    <!-- Scrollable Content -->
     <div class="flex-1 overflow-y-auto p-6 space-y-5">
 
-        <!-- Summary strip -->
+        <?php if(isset($_SESSION['flash'])): $f=$_SESSION['flash']; unset($_SESSION['flash']); ?>
+        <div class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium"
+             style="background:<?php echo $f['type']==='success'?'#dcfce7':'#fee2e2';?>;color:<?php echo $f['type']==='success'?'#16a34a':'#dc2626';?>;border:1px solid <?php echo $f['type']==='success'?'#bbf7d0':'#fecaca';?>">
+            <i class="fas fa-<?php echo $f['type']==='success'?'check-circle':'exclamation-circle';?> flex-shrink-0"></i>
+            <span><?php echo $f['msg'];?></span>
+        </div>
+        <?php endif;?>
+
         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl bg-white"
-                 style="border: 1px solid #e2e8f0;">
+            <div class="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl bg-white" style="border:1px solid #e2e8f0">
                 <span class="w-2 h-2 rounded-full bg-indigo-400 inline-block"></span>
-                <span class="text-slate-600"><?php echo $total; ?> employees total</span>
+                <span class="text-slate-600"><?php echo $total;?> employees total</span>
             </div>
         </div>
 
-        <!-- Table Card -->
-        <div class="bg-white rounded-2xl overflow-hidden"
-             style="border: 1px solid #e2e8f0; box-shadow: 0 2px 12px rgba(0,0,0,0.04);">
-
-            <!-- Table toolbar -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5"
-                 style="border-bottom: 1px solid #f1f5f9;">
+        <div class="bg-white rounded-2xl overflow-hidden" style="border:1px solid #e2e8f0;box-shadow:0 2px 12px rgba(0,0,0,.04)">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5" style="border-bottom:1px solid #f1f5f9">
                 <div>
                     <h2 class="text-base font-semibold text-slate-800">All Employees</h2>
-                    <p class="text-xs text-slate-400 mt-0.5" id="recordCount"><?php echo $total; ?> records found</p>
+                    <p class="text-xs text-slate-400 mt-0.5" id="recordCount"><?php echo $total;?> records found</p>
                 </div>
                 <div class="relative">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
-                    <input type="text" id="searchInput" placeholder="Search employees..."
-                           class="search-bar pl-9 w-56" oninput="filterTable()">
+                    <input type="text" id="searchInput" placeholder="Search employees..." class="search-bar pl-9 w-56" oninput="filterTable()">
                 </div>
             </div>
 
-            <!-- Table -->
             <div class="overflow-x-auto">
                 <table class="min-w-full" id="employeeTable">
                     <thead>
-                        <tr style="background: #f8fafc; border-bottom: 1px solid #f1f5f9;">
+                        <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9">
                             <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">#</th>
                             <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Employee</th>
                             <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Email</th>
@@ -199,273 +143,404 @@ $total = count($employees);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($employees)): ?>
-                        <tr>
-                            <td colspan="7" class="py-16 text-center">
-                                <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
-                                     style="background: #f1f5f9;">
-                                    <i class="fas fa-users text-slate-300 text-xl"></i>
-                                </div>
-                                <p class="text-slate-400 font-medium">No employees found</p>
-                                <p class="text-slate-300 text-sm mt-1">Add your first employee to get started</p>
-                            </td>
-                        </tr>
-                        <?php else: ?>
-                        <?php
-                        $avatar_colors = [
-                            ['bg' => '#e0e7ff20', 'text' => '#6366f1', 'border' => '#6366f130'],
-                            ['bg' => '#ede9fe20', 'text' => '#8b5cf6', 'border' => '#8b5cf630'],
-                            ['bg' => '#fce7f320', 'text' => '#ec4899', 'border' => '#ec489930'],
-                            ['bg' => '#fef9c320', 'text' => '#f59e0b', 'border' => '#f59e0b30'],
-                            ['bg' => '#dcfce720', 'text' => '#10b981', 'border' => '#10b98130'],
-                            ['bg' => '#dbeafe20', 'text' => '#3b82f6', 'border' => '#3b82f630'],
-                            ['bg' => '#ffedd520', 'text' => '#f97316', 'border' => '#f9731630'],
+                        <?php if(empty($employees)):?>
+                        <tr><td colspan="7" class="py-16 text-center">
+                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background:#f1f5f9">
+                                <i class="fas fa-users text-slate-300 text-xl"></i>
+                            </div>
+                            <p class="text-slate-400 font-medium">No employees found</p>
+                        </td></tr>
+                        <?php else:
+                        $ac_pool=[
+                            ['bg'=>'#e0e7ff20','text'=>'#6366f1','border'=>'#6366f130'],
+                            ['bg'=>'#ede9fe20','text'=>'#8b5cf6','border'=>'#8b5cf630'],
+                            ['bg'=>'#fce7f320','text'=>'#ec4899','border'=>'#ec489930'],
+                            ['bg'=>'#fef9c320','text'=>'#f59e0b','border'=>'#f59e0b30'],
+                            ['bg'=>'#dcfce720','text'=>'#10b981','border'=>'#10b98130'],
+                            ['bg'=>'#dbeafe20','text'=>'#3b82f6','border'=>'#3b82f630'],
+                            ['bg'=>'#ffedd520','text'=>'#f97316','border'=>'#f9731630'],
                         ];
-                        foreach ($employees as $i => $row):
-                            $ac = $avatar_colors[$i % count($avatar_colors)];
-                            $initials = strtoupper(substr($row['name'], 0, 1));
+                        foreach($employees as $i=>$row):
+                            $ac=$ac_pool[$i%count($ac_pool)];
                         ?>
-                        <tr class="table-row" data-employee-id="<?php echo $row['emp_id']; ?>">
-                            <td class="p-4">
-                                <span class="text-xs font-semibold text-slate-400"><?php echo $i + 1; ?></span>
-                            </td>
+                        <tr class="table-row">
+                            <td class="p-4"><span class="text-xs font-semibold text-slate-400"><?php echo $i+1;?></span></td>
                             <td class="p-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="avatar"
-                                         style="background: <?php echo $ac['bg']; ?>; color: <?php echo $ac['text']; ?>; border: 1.5px solid <?php echo $ac['border']; ?>;">
-                                        <?php echo $initials; ?>
+                                    <div class="avatar" style="background:<?php echo $ac['bg'];?>;color:<?php echo $ac['text'];?>;border:1.5px solid <?php echo $ac['border'];?>">
+                                        <?php echo strtoupper(substr($row['name'],0,1));?>
                                     </div>
-                                    <span class="font-medium text-slate-700 text-sm">
-                                        <?php echo htmlspecialchars($row['name']); ?>
-                                    </span>
+                                    <span class="font-medium text-slate-700 text-sm"><?php echo htmlspecialchars($row['name']);?></span>
                                 </div>
                             </td>
+                            <td class="p-4"><span class="text-sm text-slate-500"><?php echo htmlspecialchars($row['email']);?></span></td>
+                            <td class="p-4"><span class="text-sm text-slate-500"><?php echo htmlspecialchars($row['phone']);?></span></td>
                             <td class="p-4">
-                                <span class="text-sm text-slate-500">
-                                    <?php echo htmlspecialchars($row['email']); ?>
-                                </span>
+                                <?php if($row['department_name']):?>
+                                <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full" style="background:#e0e7ff;color:#4f46e5"><?php echo htmlspecialchars($row['department_name']);?></span>
+                                <?php else:?><span class="text-slate-300 text-sm">—</span><?php endif;?>
                             </td>
+                            <td class="p-4"><span class="text-sm text-slate-500"><?php echo htmlspecialchars($row['designation_name']??'—');?></span></td>
                             <td class="p-4">
-                                <span class="text-sm text-slate-500">
-                                    <?php echo htmlspecialchars($row['phone']); ?>
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <?php if ($row['department_name']): ?>
-                                <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full"
-                                      style="background: #e0e7ff; color: #4f46e5;">
-                                    <?php echo htmlspecialchars($row['department_name']); ?>
-                                </span>
-                                <?php else: ?>
-                                <span class="text-slate-300 text-sm">—</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="p-4">
-                                <span class="text-sm text-slate-500">
-                                    <?php echo htmlspecialchars($row['designation_name'] ?? '—'); ?>
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <div class="flex items-center gap-2">
-                                    <button onclick='viewEmployee(<?php echo json_encode($row); ?>)'
-                                            class="btn-action"
-                                            style="background: #dbeafe; color: #3b82f6;"
-                                            title="View employee details"
-                                            onmouseover="this.style.background='#bfdbfe'"
-                                            onmouseout="this.style.background='#dbeafe'">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <a href="edit_employee.php?id=<?php echo $row['emp_id']; ?>"
-                                       class="btn-action"
-                                       style="background: #e0e7ff; color: #4f46e5;"
-                                       title="Edit employee"
-                                       onmouseover="this.style.background='#c7d2fe'"
-                                       onmouseout="this.style.background='#e0e7ff'">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="delete_employee.php?id=<?php echo $row['emp_id']; ?>"
-                                       class="btn-action"
-                                       style="background: #fee2e2; color: #dc2626;"
-                                       title="Delete employee"
-                                       onclick="return confirm('Are you sure you want to delete this employee?')"
-                                       onmouseover="this.style.background='#fecaca'"
-                                       onmouseout="this.style.background='#fee2e2'">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </div>
+                                
+                                    <div class="flex items-center gap-2">
+
+                                        <!-- View -->
+                                        <button class="btn-action"
+                                            style="background:#2e81d4;color:#ffffff"
+                                            title="View"
+                                            onclick='viewEmployee(<?php echo json_encode($row);?>)'
+                                            onmouseover="this.style.background='#1e6bb8'"
+                                            onmouseout="this.style.background='#2e81d4'">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+
+                                        <!-- Edit -->
+                                        <button class="btn-action"
+                                            style="background:#e0e7ff;color:#4f46e5"
+                                            title="Edit"
+                                            onclick='openEditModal(<?php echo json_encode($row);?>)'
+                                            onmouseover="this.style.background='#c7d2fe'"
+                                            onmouseout="this.style.background='#e0e7ff'">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+
+                                        <!-- Delete -->
+                                        <button type="button"
+    class="btn-action"
+    style="background:#ef4444;color:#fff"
+    title="Delete"
+    onclick="confirmDelete(<?php echo $row['emp_id']; ?>, <?php echo json_encode($row['name']); ?>)">
+    <i class="fas fa-trash"></i>
+</button>
+
+                                    </div>
+                            
                             </td>
                         </tr>
-                        <?php endforeach; ?>
-                        <?php endif; ?>
+                        <?php endforeach; endif;?>
                     </tbody>
                 </table>
             </div>
-
-        </div>
-    </div><!-- /scrollable -->
-</div><!-- /main-area -->
-
-<!-- View Employee Modal -->
-<div id="viewModal" class="modal-overlay" onclick="handleOverlayClick(event)">
-    <div class="modal-box">
-        <!-- Modal Header -->
-        
-        
-        <!-- Modal Body -->
-        <div class="px-6 py-5">
-            <!-- Avatar and Basic Info -->
-            <div class="flex items-center gap-4 mb-6 pb-4" style="border-bottom: 1px solid #f1f5f9;">
-                <div class="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center bg-indigo-100">
-                    <img src="../assets/download.png" 
-                        onerror="this.style.display='none'; this.parentNode.innerHTML='Avatar';"
-                        class="w-full h-full object-cover">
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-slate-900">Employee Details</p>
-                    
-                </div>
-            </div>
-            
-            <!-- Details Grid -->
-            <div class="space-y-1">
-                <!-- Personal Information -->
-                <div class="info-row">
-                    <div class="info-label">Full Name</div>
-                    <div class="info-value" id="modalName">John Doe</div>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Email Address</div>
-                    <div class="info-value" id="modalEmail">john@example.com</div>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Phone Number</div>
-                    <div class="info-value" id="modalPhone">+1 234 567 8900</div>
-                </div>
-                
-                <!-- Work Information -->
-                <div class="info-row">
-                    <div class="info-label">Department</div>
-                    <div class="info-value">
-                        <span class="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full" 
-                              style="background: #e0e7ff; color: #4f46e5;" id="modalDepartment">
-                            Engineering
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Designation</div>
-                    <div class="info-value" id="modalDesignation">Senior Developer</div>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Date of Birth</div>
-                    <div class="info-value" id="modalDob">1990-01-01</div>
-                </div>
-                
-                <!-- Address Information -->
-                <div class="info-row">
-                    <div class="info-label">Address</div>
-                    <div class="info-value" id="modalAddress">123 Main St, City, State 12345</div>
-                </div>
-                
-                
-            </div>
-        </div>
-        
-        <!-- Modal Footer -->
-        <div class="flex gap-3 px-6 py-4" style="border-top: 1px solid #f1f5f9;">
-            <button onclick="closeModal()"
-                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-500 transition-all"
-                    style="background: #f1f5f9; border: 1px solid #e2e8f0;"
-                    onmouseover="this.style.background='#e2e8f0'"
-                    onmouseout="this.style.background='#f1f5f9'">
-                Close
-            </button>
-            <a href="#" id="modalCallBtn"
-               class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all opacity-50 pointer-events-none"
-               style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16,185,129,0.35);"
-               onmouseover="this.style.boxShadow='0 6px 20px rgba(16,185,129,0.5)'"
-               onmouseout="this.style.boxShadow='0 4px 14px rgba(16,185,129,0.35)'">
-                <i class="fas fa-phone-alt"></i> Call Employee
-            </a>
         </div>
     </div>
 </div>
 
+<?php
+// Pre-render dropdown options once
+ob_start();
+foreach($departments as $d) echo "<option value='{$d['dep_id']}'>".htmlspecialchars($d['name'])."</option>";
+$dept_opts=ob_get_clean();
+ob_start();
+foreach($designations as $d) echo "<option value='{$d['desg_id']}'>".htmlspecialchars($d['name'])."</option>";
+$desg_opts=ob_get_clean();
+
+function modal_header($id,$icon,$title,$subtitle){
+    echo "<div class='flex items-center justify-between px-6 py-5' style='border-bottom:1px solid #f1f5f9'>
+        <div class='flex items-center gap-3'>
+            <div class='w-9 h-9 rounded-xl flex items-center justify-center' style='background:linear-gradient(135deg,#6366f1,#8b5cf6)'>
+                <i class='fas $icon text-white text-xs'></i></div>
+            <div><h2 class='font-bold text-slate-800'>$title</h2><p class='text-xs text-slate-400' id='{$id}Sub'>$subtitle</p></div>
+        </div>
+        <button onclick=\"closeModal('$id')\" class='w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100'>
+            <i class='fas fa-times text-sm'></i></button></div>";
+}
+function btn_row($cancel_modal){
+    echo "<div class='flex gap-3 pt-1'>
+        <button type='button' onclick=\"closeModal('$cancel_modal')\" class='flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-500' style='background:#f1f5f9;border:1px solid #e2e8f0' onmouseover=\"this.style.background='#e2e8f0'\" onmouseout=\"this.style.background='#f1f5f9'\">Cancel</button>
+        <button type='submit' class='flex-1 py-2.5 rounded-xl text-sm font-semibold text-white' style='background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 14px rgba(99,102,241,.35)'>Save</button>
+    </div>";
+}
+?>
+
+<!-- ── ADD MODAL ── -->
+<div id="addModal" class="modal-overlay" onclick="handleOverlay(event,'addModal')">
+<div class="modal-box">
+<?php modal_header('addModal','fa-user-plus','Add Employee','Fill in the new employee details'); ?>
+<form method="POST" action="employees.php" class="px-6 py-5 space-y-4">
+    <input type="hidden" name="action" value="add">
+    <div>
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Full Name *</label>
+        <input type="text" name="name" class="form-input" placeholder="e.g. Rahul Sharma" required>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Email *</label>
+            <input type="email" name="email" class="form-input" required></div>
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Phone</label>
+            <input type="tel" name="phone" class="form-input"></div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Date of Birth</label>
+            <input type="date" name="dob" class="form-input"></div>
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Gender</label>
+            <select name="gender" class="form-input"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Department *</label>
+            <select name="dep_id" class="form-input" required><option value="">Select</option><?php echo $dept_opts;?></select></div>
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Designation *</label>
+            <select name="desg_id" class="form-input" required><option value="">Select</option><?php echo $desg_opts;?></select></div>
+    </div>
+    <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Address</label>
+        <textarea name="address" rows="2" class="form-input" style="resize:none"></textarea></div>
+    <div style="border-top:1px solid #f1f5f9;padding-top:14px">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Login Credentials</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Username *</label>
+                <input type="text" name="username" class="form-input" required minlength="4" placeholder="Enter Username"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Password *</label>
+                <input type="password" name="password" class="form-input" required minlength="6" placeholder="Enter Password"></div>
+        </div>
+    </div>
+    <?php btn_row('addModal');?>
+</form>
+</div>
+</div>
+
+<!-- ── EDIT MODAL ── -->
+<div id="editModal" class="modal-overlay" onclick="handleOverlay(event,'editModal')">
+<div class="modal-box">
+<?php modal_header('editModal','fa-user-edit','Edit Employee','Update employee details'); ?>
+<form method="POST" action="employees.php" class="px-6 py-5 space-y-4">
+    <input type="hidden" name="action" value="edit">
+    <input type="hidden" name="emp_id" id="editEmpId">
+    <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Full Name *</label>
+        <input type="text" name="name" id="editName" class="form-input" required></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Email *</label>
+            <input type="email" name="email" id="editEmail" class="form-input" required></div>
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Phone</label>
+            <input type="tel" name="phone" id="editPhone" class="form-input"></div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Date of Birth</label>
+            <input type="date" name="dob" id="editDob" class="form-input"></div>
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Gender</label>
+            <select name="gender" id="editGender" class="form-input"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Department *</label>
+            <select name="dep_id" id="editDepId" class="form-input" required><option value="">Select</option><?php echo $dept_opts;?></select></div>
+        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Designation *</label>
+            <select name="desg_id" id="editDesgId" class="form-input" required><option value="">Select</option><?php echo $desg_opts;?></select></div>
+    </div>
+    <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Address</label>
+        <textarea name="address" id="editAddress" rows="2" class="form-input" style="resize:none"></textarea></div>
+    <?php btn_row('editModal');?>
+</form>
+</div>
+</div>
+
+<!-- ── VIEW MODAL ── -->
+<div id="viewModal" class="modal-overlay" onclick="handleOverlay(event,'viewModal')">
+<div class="modal-box">
+    <div class="px-6 py-5" style="border-bottom:1px solid #f1f5f9">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div id="viewAvatar" class="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white flex-shrink-0"
+                     style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">A</div>
+                <div>
+                    <h2 class="font-bold text-slate-800" id="viewName">—</h2>
+                </div>
+            
+        </div>
+    </div>
+    <div class="px-6 py-4">
+        <div class="info-row"><div class="info-label">Email</div><div class="info-value" id="vEmail">—</div></div>
+        <div class="info-row"><div class="info-label">Phone</div><div class="info-value" id="vPhone">—</div></div>
+        <div class="info-row"><div class="info-label">Department</div>
+            <div class="info-value"><span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full" style="background:#e0e7ff;color:#4f46e5" id="vDept">—</span></div>
+        </div>
+        <div class="info-row"><div class="info-label">Designation</div><div class="info-value" id="vDesg">—</div></div>
+        <div class="info-row"><div class="info-label">Date of Birth</div><div class="info-value" id="vDob">—</div></div>
+        <div class="info-row"><div class="info-label">Gender</div><div class="info-value" id="vGender">—</div></div>
+        <div class="info-row"><div class="info-label">Address</div><div class="info-value" id="vAddress">—</div></div>
+    </div>
+    <div class="flex gap-3 px-6 py-4" style="border-top:1px solid #f1f5f9">
+        <button onclick="closeModal('viewModal')" class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-500"
+                style="background:#f1f5f9;border:1px solid #e2e8f0" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Close</button>
+        <a id="viewCallBtn" href="#" class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white"
+           style="background:linear-gradient(135deg,#10b981,#059669)"><i class="fas fa-phone-alt text-xs"></i> Call</a>
+    </div>
+</div>
+</div>
+
+
+<!-- DELETE MODAL -->
+<div id="deleteModal" class="modal-overlay" onclick="handleOverlay(event,'deleteModal')">
+<div class="modal-box modal-sm">
+    <div class="px-6 py-6 text-center">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background:#fee2e2">
+            <i class="fas fa-trash text-red-500 text-xl"></i>
+        </div>
+
+        <h3 class="font-bold text-slate-800 text-lg mb-1">Delete Employee?</h3>
+        <p class="text-sm text-slate-400">
+            Delete <strong id="deleteEmpName"></strong>? This cannot be undone.
+        </p>
+    </div>
+
+    <div class="flex gap-3 px-6 pb-6">
+        <button onclick="closeModal('deleteModal')"
+            class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-500"
+            style="background:#f1f5f9;border:1px solid #e2e8f0">
+            Cancel
+        </button>
+
+        <a id="deleteLinkBtn" href="#"
+            class="flex-1 inline-flex items-center justify-center py-2.5 rounded-xl text-sm font-semibold text-white"
+            style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+            Yes, Delete
+        </a>
+    </div>
+</div>
+</div>
+
+
 <script>
-// Modal functions
-function openModal() {
-    document.getElementById('viewModal').classList.add('open');
-    document.body.style.overflow = 'hidden';
+
+// ==========================
+// 🔹 OPEN MODAL (FIXED)
+// ==========================
+function openModal(id){
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+        m.classList.remove('open');
+    });
+
+    setTimeout(() => {
+        const modal = document.getElementById(id);
+        if(modal){
+            modal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+    }, 30);
 }
 
-function closeModal() {
-    document.getElementById('viewModal').classList.remove('open');
+
+// ==========================
+// 🔹 CLOSE MODAL
+// ==========================
+function closeModal(id){
+    const modal = document.getElementById(id);
+    if(modal){
+        modal.classList.remove('open');
+    }
     document.body.style.overflow = '';
 }
 
-function handleOverlayClick(event) {
-    if (event.target === document.getElementById('viewModal')) {
-        closeModal();
+
+// ==========================
+// 🔹 CLICK OUTSIDE CLOSE
+// ==========================
+function handleOverlay(e,id){
+    if(e.target === document.getElementById(id)){
+        closeModal(id);
     }
 }
 
-// View employee details
-function viewEmployee(employee) {
-    // Update modal content with employee data
-    
-    
-    document.getElementById('modalName').textContent = employee.name || '—';
-    document.getElementById('modalEmail').textContent = employee.email || '—';
-    document.getElementById('modalPhone').textContent = employee.phone || '—';
-    document.getElementById('modalDepartment').textContent = employee.department_name || '—';
-    document.getElementById('modalDesignation').textContent = employee.designation_name || '—';
-    document.getElementById('modalDob').textContent = employee.dob ? new Date(employee.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
-    document.getElementById('modalAddress').textContent = employee.address || '—';
-    
-    // Update call button with phone number
-    const callBtn = document.getElementById('modalCallBtn');
-    if (employee.phone) {
-        callBtn.href = 'tel:' + employee.phone;
-        callBtn.classList.remove('opacity-50', 'pointer-events-none');
-        callBtn.title = 'Call ' + employee.phone;
-    } else {
-        callBtn.href = '#';
-        callBtn.classList.add('opacity-50', 'pointer-events-none');
-        callBtn.title = 'No phone number available';
-    }
-    
-    // Open modal
-    openModal();
+
+// ==========================
+// 🔹 VIEW EMPLOYEE (SAFE)
+// ==========================
+function viewEmployee(e){
+
+    if(!e) return;
+
+    document.getElementById('viewName').textContent = e.name || '—';
+    document.getElementById('viewAvatar').textContent = (e.name || '?').charAt(0).toUpperCase();
+
+    document.getElementById('vEmail').textContent = e.email || '—';
+    document.getElementById('vPhone').textContent = e.phone || '—';
+    document.getElementById('vDept').textContent = e.department_name || '—';
+    document.getElementById('vDesg').textContent = e.designation_name || '—';
+    document.getElementById('vGender').textContent = e.gender || '—';
+    document.getElementById('vAddress').textContent = e.address || '—';
+
+    document.getElementById('vDob').textContent =
+        e.dob
+        ? new Date(e.dob).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+        : '—';
+
+    document.getElementById('viewCallBtn').href =
+        e.phone ? 'tel:' + e.phone : '#';
+
+    openModal('viewModal');
 }
 
-// Table filter function
-function filterTable() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
+
+// ==========================
+// 🔹 EDIT EMPLOYEE
+// ==========================
+function openEditModal(e){
+
+    if(!e) return;
+
+    document.getElementById('editEmpId').value = e.emp_id || '';
+    document.getElementById('editName').value = e.name || '';
+    document.getElementById('editEmail').value = e.email || '';
+    document.getElementById('editPhone').value = e.phone || '';
+    document.getElementById('editDob').value = e.dob || '';
+    document.getElementById('editGender').value = e.gender || '';
+    document.getElementById('editAddress').value = e.address || '';
+    document.getElementById('editDepId').value = e.dep_id || '';
+    document.getElementById('editDesgId').value = e.desg_id || '';
+
+    document.getElementById('editModalSub').textContent =
+        'Editing: ' + (e.name || '');
+
+    openModal('editModal');
+}
+
+
+// ==========================
+// 🔹 DELETE EMPLOYEE (FINAL FIX)
+// ==========================
+function confirmDelete(id, name){
+
+    console.log("CLICKED:", id, name);
+
+    if (!id) return;
+
+    const nameEl = document.getElementById('deleteEmpName');
+    const linkEl = document.getElementById('deleteLinkBtn');
+
+    if (!nameEl || !linkEl) {
+        console.error("Delete modal elements missing");
+        return;
+    }
+
+    nameEl.textContent = name || '—';
+    linkEl.href = 'delete_employee.php?id=' + encodeURIComponent(id);
+
+    openModal('deleteModal'); // ✅ only this
+}
+
+
+// ==========================
+// 🔹 SEARCH FILTER
+// ==========================
+function filterTable(){
+
+    const q = document.getElementById('searchInput').value.toLowerCase();
     const rows = document.querySelectorAll('#employeeTable tbody tr');
+
     let visibleCount = 0;
-    
+
     rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        const visible = text.includes(query);
-        row.style.display = visible ? '' : 'none';
-        if (visible) visibleCount++;
+        const show = row.textContent.toLowerCase().includes(q);
+        row.style.display = show ? '' : 'none';
+
+        if(show) visibleCount++;
     });
-    
-    // Update record count
-    document.getElementById('recordCount').textContent = visibleCount + ' record' + (visibleCount === 1 ? '' : 's') + ' found';
+
+    document.getElementById('recordCount').textContent =
+        visibleCount + ' record' + (visibleCount === 1 ? '' : 's') + ' found';
 }
 
-// Close modal with Escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeModal();
-    }
-});
 </script>
-
 </body>
 </html>

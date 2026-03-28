@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     
     // If credentials are invalid
-    header("Location: http://".$_SERVER['HTTP_HOST']."/emplify/login.html?error=1");
+    header("Location: http://".$_SERVER['HTTP_HOST']."/emplify/index.html?error=1");
     exit();
 }
 ?>
