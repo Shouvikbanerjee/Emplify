@@ -179,10 +179,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['employee_image'])) {
             <h1 class="text-lg font-bold text-slate-800" style="letter-spacing:-0.2px;">My Profile</h1>
             <p class="text-xs text-slate-400 mt-0.5">View and update your personal information</p>
         </div>
-        <div class="flex items-center gap-2 text-sm text-slate-500 px-3 sm:px-4 py-2 rounded-xl bg-white"
-             style="border:1px solid #e2e8f0;">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
-            <span class="hidden sm:inline">Active</span>
+        <div class="flex items-center gap-2 text-sm px-3 sm:px-4 py-2 rounded-xl"
+             style="border:1px solid <?= $employee['status'] ? '#bbf7d0' : '#fecaca' ?>;background:<?= $employee['status'] ? '#f0fdf4' : '#fff1f2' ?>;color:<?= $employee['status'] ? '#16a34a' : '#dc2626' ?>;">
+            <span class="w-2 h-2 rounded-full inline-block <?= $employee['status'] ? 'animate-pulse' : '' ?>"
+                  style="background:<?= $employee['status'] ? '#34d399' : '#f87171' ?>"></span>
+            <span class="hidden sm:inline font-semibold"><?= $employee['status'] ? 'Active' : 'Inactive' ?></span>
         </div>
     </div>
 
@@ -251,12 +252,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['employee_image'])) {
                         <div class="flex gap-3 mt-5 justify-center flex-wrap">
                             <div class="stat-pill min-w-[80px]">
                                 <p class="text-xs font-semibold" style="color:#a5b4fc;">Status</p>
-                                <p class="text-xs font-bold text-black mt-0.5">Active</p>
+                                <p class="text-xs font-bold mt-0.5" style="color:<?= $employee['status'] ? '#16a34a' : '#dc2626' ?>">
+                                    <?= $employee['status'] ? 'Active' : 'Inactive' ?>
+                                </p>
                             </div>
-                            <div class="stat-pill min-w-[80px]">
-                                <p class="text-xs font-semibold" style="color:#a5b4fc;">Member</p>
-                                <p class="text-xs font-bold text-black mt-0.5">2024</p>
-                            </div>
+                           
                         </div>
                     </div>
 
@@ -297,15 +297,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['employee_image'])) {
                     </div>
                     <div class="flex items-center justify-between py-2" style="border-bottom:1px solid #f8fafc;">
                         <span class="text-sm text-slate-500">Account Status</span>
+                        <?php if($employee['status']): ?>
                         <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                               style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Active
                         </span>
+                        <?php else: ?>
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                              style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>Inactive
+                        </span>
+                        <?php endif; ?>
                     </div>
-                    <div class="flex items-center justify-between py-2">
-                        <span class="text-sm text-slate-500">Member Since</span>
-                        <span class="text-sm font-semibold text-slate-700">2024</span>
-                    </div>
+                    
                 </div>
 
             </div>

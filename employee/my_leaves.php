@@ -75,6 +75,12 @@ $total    = count($leaves);
 $pending  = count(array_filter($leaves, fn($l) => strtolower($l['status']) === 'pending'));
 $approved = count(array_filter($leaves, fn($l) => strtolower($l['status']) === 'approved'));
 $rejected = count(array_filter($leaves, fn($l) => strtolower($l['status']) === 'rejected'));
+
+$stmt = $conn->prepare("SELECT leave_balance FROM employee WHERE emp_id = ?");
+$stmt->bind_param('i', $emp_id);
+$stmt->execute();
+$balRow  = $stmt->get_result()->fetch_assoc();
+$balance = $balRow['leave_balance'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -140,7 +146,7 @@ $rejected = count(array_filter($leaves, fn($l) => strtolower($l['status']) === '
         <?php endif; ?>
 
         <!-- Stats -->
-        <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 xl:grid-cols-5 gap-4">
             <div class="stat-card flex items-center gap-4">
                 <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe);">
                     <i class="fas fa-list text-indigo-600 text-sm"></i>
@@ -164,6 +170,12 @@ $rejected = count(array_filter($leaves, fn($l) => strtolower($l['status']) === '
                     <i class="fas fa-times-circle text-red-500 text-sm"></i>
                 </div>
                 <div><p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Rejected</p><p class="text-2xl font-bold text-slate-800"><?php echo $rejected; ?></p></div>
+            </div>
+            <div class="stat-card flex items-center gap-4">
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#e0f2fe,#bae6fd);">
+                    <i class="fas fa-wallet text-sky-500 text-sm"></i>
+                </div>
+                <div><p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Leave Balance</p><p class="text-2xl font-bold text-slate-800"><?php echo $balance; ?></p></div>
             </div>
         </div>
 
@@ -303,6 +315,12 @@ function handleOverlay(e,id) { if (e.target===document.getElementById(id)) close
 
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('start_date').min = today;
+document.getElementById('end_date').min = today;
+document.getElementById('start_date').addEventListener('change', function () {
+    document.getElementById('end_date').min = this.value;
+    const e = document.getElementById('end_date');
+    if (e.value && e.value < this.value) e.value = this.value;
+});
 document.getElementById('end_date').addEventListener('change', function () {
     const s = document.getElementById('start_date').value;
     if (s && this.value < s) { alert('End date cannot be before start date'); this.value = ''; }

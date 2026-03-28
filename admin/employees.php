@@ -15,8 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
     $password=password_hash($_POST['password'], PASSWORD_DEFAULT);
     $conn->begin_transaction();
     try {
-        $s=$conn->prepare("INSERT INTO employee (name,email,phone,gender,dob,address,dep_id,desg_id) VALUES (?,?,?,?,?,?,?,?)");
-        $s->bind_param("ssssssii",$name,$email,$phone,$gender,$dob,$address,$dep_id,$desg_id);
+        $status = 1; // define variable first
+
+        $s = $conn->prepare("INSERT INTO employee (name,email,phone,gender,dob,address,dep_id,desg_id,status) VALUES (?,?,?,?,?,?,?,?,?)");
+
+        $s->bind_param("ssssssiii", $name, $email, $phone, $gender, $dob, $address, $dep_id, $desg_id, $status);
         $s->execute(); $eid=$conn->insert_id;
         $s2=$conn->prepare("INSERT INTO login (username,password,emp_id) VALUES (?,?,?)");
         $s2->bind_param("ssi",$username,$password,$eid);
@@ -33,15 +36,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
     $phone=$_POST['phone']; $gender=$_POST['gender']; $dob=$_POST['dob'];
     $address=$_POST['address']; $dep_id=(int)$_POST['dep_id']; $desg_id=(int)$_POST['desg_id'];
     $s=$conn->prepare("UPDATE employee SET name=?,email=?,phone=?,gender=?,dob=?,address=?,dep_id=?,desg_id=? WHERE emp_id=?");
-    $s->bind_param("ssssssiis",$name,$email,$phone,$gender,$dob,$address,$dep_id,$desg_id,$eid);
+    $s->bind_param("ssssssiii",$name,$email,$phone,$gender,$dob,$address,$dep_id,$desg_id,$eid);
     if($s->execute()) $_SESSION['flash']=['type'=>'success','msg'=>"Employee <strong>".htmlspecialchars($name)."</strong> updated!"];
     else $_SESSION['flash']=['type'=>'error','msg'=>"Update failed: ".$conn->error];
     header('Location: employees.php'); exit();
 }
 
-// ── Fetch data ───────────────────────────────────────────────────
-$employees=$conn->query("SELECT e.*,d.name as department_name,ds.name as designation_name FROM employee e LEFT JOIN department d ON e.dep_id=d.dep_id LEFT JOIN designation ds ON e.desg_id=ds.desg_id")->fetch_all(MYSQLI_ASSOC);
-$total=count($employees);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_status') {
+
+    $emp_id = (int)$_POST['emp_id'];
+    $current_status = (int)$_POST['status'];
+
+    $new_status = $current_status ? 0 : 1;
+
+    $stmt = $conn->prepare("UPDATE employee SET status=? WHERE emp_id=?");
+    $stmt->bind_param("ii", $new_status, $emp_id);
+    $stmt->execute();
+
+    $redirect_filter = $_POST['current_filter'] ?? 'active';
+    header("Location: employees.php?filter=" . urlencode($redirect_filter));
+    exit();
+}
+
+// ── Handle DELETE ─────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+    $eid = (int)$_POST['emp_id'];
+    $conn->begin_transaction();
+    try {
+        $s = $conn->prepare("DELETE FROM login WHERE emp_id=?");
+        $s->bind_param("i",$eid); $s->execute();
+        $s2 = $conn->prepare("DELETE FROM employee WHERE emp_id=?");
+        $s2->bind_param("i",$eid); $s2->execute();
+        $conn->commit();
+        $_SESSION['flash']=['type'=>'success','msg'=>"Employee deleted successfully."];
+    } catch(Exception $e){ $conn->rollback(); $_SESSION['flash']=['type'=>'error','msg'=>"Delete failed: ".$e->getMessage()]; }
+    $redirect_filter = $_POST['current_filter'] ?? 'active';
+    header('Location: employees.php?filter='.urlencode($redirect_filter)); exit();
+}
+
+
+$filter = $_GET['filter'] ?? 'active';
+
+$sql = "SELECT e.*, d.name as department_name, ds.name as designation_name 
+        FROM employee e 
+        LEFT JOIN department d ON e.dep_id = d.dep_id 
+        LEFT JOIN designation ds ON e.desg_id = ds.desg_id";
+
+if ($filter === 'active') {
+    $sql .= " WHERE e.status = 1";
+} elseif ($filter === 'inactive') {
+    $sql .= " WHERE e.status = 0";
+}
+
+$employees = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
+$total = count($employees);
 $departments=$conn->query("SELECT dep_id,name FROM department ORDER BY name")->fetch_all(MYSQLI_ASSOC);
 $designations=$conn->query("SELECT desg_id,name FROM designation ORDER BY name")->fetch_all(MYSQLI_ASSOC);
 ?>
@@ -115,6 +163,34 @@ $designations=$conn->query("SELECT desg_id,name FROM designation ORDER BY name")
                 <span class="w-2 h-2 rounded-full bg-indigo-400 inline-block"></span>
                 <span class="text-slate-600"><?php echo $total;?> employees total</span>
             </div>
+
+            <div class="flex items-center gap-2">
+    <?php
+    $filters = [
+        'active'   => ['label'=>'Active',   'icon'=>'fa-circle-check',  'active_bg'=>'linear-gradient(135deg,#22c55e,#16a34a)', 'active_shadow'=>'rgba(34,197,94,.35)',  'inactive_bg'=>'#f0fdf4', 'inactive_color'=>'#16a34a', 'inactive_border'=>'#bbf7d0'],
+        'inactive' => ['label'=>'Inactive',  'icon'=>'fa-circle-xmark',  'active_bg'=>'linear-gradient(135deg,#ef4444,#dc2626)', 'active_shadow'=>'rgba(239,68,68,.35)',   'inactive_bg'=>'#fff1f2', 'inactive_color'=>'#dc2626', 'inactive_border'=>'#fecdd3'],
+        'all'      => ['label'=>'All',       'icon'=>'fa-users',          'active_bg'=>'linear-gradient(135deg,#6366f1,#8b5cf6)', 'active_shadow'=>'rgba(99,102,241,.35)', 'inactive_bg'=>'#f5f3ff', 'inactive_color'=>'#6366f1', 'inactive_border'=>'#ddd6fe'],
+    ];
+    foreach($filters as $key=>$cfg):
+        $isActive = ($filter === $key);
+        if($isActive):
+    ?>
+        <a href="employees.php?filter=<?php echo $key;?>"
+           style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:50px;font-size:13px;font-weight:600;color:#fff;text-decoration:none;background:<?php echo $cfg['active_bg'];?>;box-shadow:0 4px 12px <?php echo $cfg['active_shadow'];?>;transition:all .2s;"
+           onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px <?php echo $cfg['active_shadow'];?>'"
+           onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px <?php echo $cfg['active_shadow'];?>'">
+            <i class="fas <?php echo $cfg['icon'];?>" style="font-size:11px"></i> <?php echo $cfg['label'];?>
+        </a>
+    <?php else: ?>
+        <a href="employees.php?filter=<?php echo $key;?>"
+           style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:50px;font-size:13px;font-weight:600;color:<?php echo $cfg['inactive_color'];?>;text-decoration:none;background:<?php echo $cfg['inactive_bg'];?>;border:1.5px solid <?php echo $cfg['inactive_border'];?>;transition:all .2s;"
+           onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 3px 10px <?php echo $cfg['active_shadow'];?>'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <i class="fas <?php echo $cfg['icon'];?>" style="font-size:11px"></i> <?php echo $cfg['label'];?>
+        </a>
+    <?php endif; endforeach; ?>
+</div>
+
         </div>
 
         <div class="bg-white rounded-2xl overflow-hidden" style="border:1px solid #e2e8f0;box-shadow:0 2px 12px rgba(0,0,0,.04)">
@@ -139,12 +215,13 @@ $designations=$conn->query("SELECT desg_id,name FROM designation ORDER BY name")
                             <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Phone</th>
                             <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Department</th>
                             <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Designation</th>
+                            <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
                             <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if(empty($employees)):?>
-                        <tr><td colspan="7" class="py-16 text-center">
+                        <tr><td colspan="8" class="py-16 text-center">
                             <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background:#f1f5f9">
                                 <i class="fas fa-users text-slate-300 text-xl"></i>
                             </div>
@@ -182,16 +259,27 @@ $designations=$conn->query("SELECT desg_id,name FROM designation ORDER BY name")
                             </td>
                             <td class="p-4"><span class="text-sm text-slate-500"><?php echo htmlspecialchars($row['designation_name']??'—');?></span></td>
                             <td class="p-4">
+                                <?php if($row['status']==1):?>
+                                <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:50px;font-size:11px;font-weight:700;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0">
+                                    <i class="fas fa-circle" style="font-size:5px"></i> Active
+                                </span>
+                                <?php else:?>
+                                <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:50px;font-size:11px;font-weight:700;background:#fee2e2;color:#dc2626;border:1px solid #fecaca">
+                                    <i class="fas fa-circle" style="font-size:5px"></i> Inactive
+                                </span>
+                                <?php endif;?>
+                            </td>
+                            <td class="p-4">
                                 
                                     <div class="flex items-center gap-2">
 
                                         <!-- View -->
                                         <button class="btn-action"
-                                            style="background:#2e81d4;color:#ffffff"
+                                            style="background:#e0f2fe;color:#0284c7"
                                             title="View"
                                             onclick='viewEmployee(<?php echo json_encode($row);?>)'
-                                            onmouseover="this.style.background='#1e6bb8'"
-                                            onmouseout="this.style.background='#2e81d4'">
+                                            onmouseover="this.style.background='#bae6fd'"
+                                            onmouseout="this.style.background='#e0f2fe'">
                                             <i class="fas fa-eye"></i>
                                         </button>
 
@@ -206,13 +294,38 @@ $designations=$conn->query("SELECT desg_id,name FROM designation ORDER BY name")
                                         </button>
 
                                         <!-- Delete -->
-                                        <button type="button"
-    class="btn-action"
-    style="background:#ef4444;color:#fff"
-    title="Delete"
-    onclick="confirmDelete(<?php echo $row['emp_id']; ?>, <?php echo json_encode($row['name']); ?>)">
-    <i class="fas fa-trash"></i>
-</button>
+                                        <button class="btn-action"
+                                            style="background:#fee2e2;color:#dc2626"
+                                            title="Delete"
+                                            onclick='openDeleteModal(<?php echo $row["emp_id"]; ?>, <?php echo json_encode(htmlspecialchars($row["name"])); ?>, "<?php echo htmlspecialchars($filter); ?>")'
+                                            onmouseover="this.style.background='#fecaca'"
+                                            onmouseout="this.style.background='#fee2e2'">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+
+                                        <!-- Toggle Status Pill -->
+                                        <form method="POST" action="employees.php" style="display:inline;">
+                                            <input type="hidden" name="action" value="toggle_status">
+                                            <input type="hidden" name="emp_id" value="<?php echo $row['emp_id']; ?>">
+                                            <input type="hidden" name="status" value="<?php echo $row['status']; ?>">
+                                            <input type="hidden" name="current_filter" value="<?php echo htmlspecialchars($filter); ?>">
+                                            <?php if($row['status'] == 1): ?>
+                                                
+                                                <button type="submit"
+                                                    style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:none;border-radius:50px;cursor:pointer;font-size:11px;font-weight:700;background:linear-gradient(135deg,#f87171,#ef4444);color:#fff;box-shadow:0 3px 8px rgba(239,68,68,.35);transition:all .2s;letter-spacing:.2px;"
+                                                    onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 5px 14px rgba(239,68,68,.5)'"
+                                                    onmouseout="this.style.transform='';this.style.boxShadow='0 3px 8px rgba(239,68,68,.35)'">
+                                                    <i class="fas fa-circle" style="font-size:6px"></i> Inactive
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="submit"
+                                                    style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:none;border-radius:50px;cursor:pointer;font-size:11px;font-weight:700;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;box-shadow:0 3px 8px rgba(34,197,94,.35);transition:all .2s;letter-spacing:.2px;"
+                                                    onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 5px 14px rgba(34,197,94,.5)'"
+                                                    onmouseout="this.style.transform='';this.style.boxShadow='0 3px 8px rgba(34,197,94,.35)'">
+                                                    <i class="fas fa-circle" style="font-size:6px"></i> Active
+                                                </button>
+                                            <?php endif; ?>
+                                        </form>
 
                                     </div>
                             
@@ -342,7 +455,7 @@ function btn_row($cancel_modal){
                 <div>
                     <h2 class="font-bold text-slate-800" id="viewName">—</h2>
                 </div>
-            
+            </div>
         </div>
     </div>
     <div class="px-6 py-4">
@@ -366,38 +479,58 @@ function btn_row($cancel_modal){
 </div>
 
 
-<!-- DELETE MODAL -->
+
+
+
+<!-- ── DELETE CONFIRM MODAL ── -->
 <div id="deleteModal" class="modal-overlay" onclick="handleOverlay(event,'deleteModal')">
-<div class="modal-box modal-sm">
-    <div class="px-6 py-6 text-center">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background:#fee2e2">
-            <i class="fas fa-trash text-red-500 text-xl"></i>
+<div class="modal-box modal-sm" style="max-width:400px">
+    <div class="px-6 pt-6 pb-2 text-center">
+        <!-- Icon -->
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+             style="background:linear-gradient(135deg,#fee2e2,#fecaca)">
+            <i class="fas fa-trash-alt text-2xl" style="color:#dc2626"></i>
         </div>
-
-        <h3 class="font-bold text-slate-800 text-lg mb-1">Delete Employee?</h3>
-        <p class="text-sm text-slate-400">
-            Delete <strong id="deleteEmpName"></strong>? This cannot be undone.
-        </p>
+        <h2 class="text-lg font-bold text-slate-800 mb-1">Delete Employee?</h2>
+        <p class="text-sm text-slate-400 mb-1">You are about to permanently delete</p>
+        <p class="text-sm font-semibold text-slate-700 mb-1" id="deleteEmpName">—</p>
+        <p class="text-xs text-slate-400">This action <span class="font-semibold text-red-500">cannot be undone</span>.</p>
     </div>
-
-    <div class="flex gap-3 px-6 pb-6">
-        <button onclick="closeModal('deleteModal')"
-            class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-500"
-            style="background:#f1f5f9;border:1px solid #e2e8f0">
-            Cancel
-        </button>
-
-        <a id="deleteLinkBtn" href="#"
-            class="flex-1 inline-flex items-center justify-center py-2.5 rounded-xl text-sm font-semibold text-white"
-            style="background:linear-gradient(135deg,#ef4444,#dc2626)">
-            Yes, Delete
-        </a>
-    </div>
+    <form method="POST" action="employees.php" id="deleteForm" class="px-6 pb-6 pt-4">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="emp_id" id="deleteEmpId">
+        <input type="hidden" name="current_filter" id="deleteCurrentFilter">
+        <div class="flex gap-3 mt-2">
+            <button type="button" onclick="closeModal('deleteModal')"
+                class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-500"
+                style="background:#f1f5f9;border:1px solid #e2e8f0"
+                onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                Cancel
+            </button>
+            <button type="submit"
+                class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 14px rgba(239,68,68,.35)"
+                onmouseover="this.style.boxShadow='0 6px 20px rgba(239,68,68,.5)'"
+                onmouseout="this.style.boxShadow='0 4px 14px rgba(239,68,68,.35)'">
+                <i class="fas fa-trash-alt text-xs mr-1"></i> Yes, Delete
+            </button>
+        </div>
+    </form>
 </div>
 </div>
-
 
 <script>
+
+// ==========================
+// 🔹 OPEN MODAL (FIXED)
+// ==========================
+function openDeleteModal(empId, empName, currentFilter) {
+    document.getElementById('deleteEmpId').value = empId;
+    document.getElementById('deleteEmpName').textContent = empName;
+    document.getElementById('deleteCurrentFilter').value = currentFilter;
+    openModal('deleteModal');
+}
+
 
 // ==========================
 // 🔹 OPEN MODAL (FIXED)
@@ -496,28 +629,8 @@ function openEditModal(e){
 }
 
 
-// ==========================
-// 🔹 DELETE EMPLOYEE (FINAL FIX)
-// ==========================
-function confirmDelete(id, name){
 
-    console.log("CLICKED:", id, name);
 
-    if (!id) return;
-
-    const nameEl = document.getElementById('deleteEmpName');
-    const linkEl = document.getElementById('deleteLinkBtn');
-
-    if (!nameEl || !linkEl) {
-        console.error("Delete modal elements missing");
-        return;
-    }
-
-    nameEl.textContent = name || '—';
-    linkEl.href = 'delete_employee.php?id=' + encodeURIComponent(id);
-
-    openModal('deleteModal'); // ✅ only this
-}
 
 
 // ==========================
