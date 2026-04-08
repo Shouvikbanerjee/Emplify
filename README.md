@@ -32,7 +32,7 @@
 * Role-based access (Admin / Employee)
 
 
----
+
 
 ## 🛠️ Tech Stack
 
@@ -41,7 +41,7 @@
 * **Database:** MySQL
 * **Server:** XAMPP / WAMP / Live Hosting
 
----
+
 
 
 ## 🚀 Future Enhancements
@@ -51,5 +51,8 @@
 * Role-based permissions
 * Advanced Reports & Analytics
 * Real-time Notifications
+
+## 👉 Live Project
+* emplify.unaux.com
 
 
