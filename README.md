@@ -52,7 +52,10 @@
 * Advanced Reports & Analytics
 * Real-time Notifications
 
-## 👉 Live Project
-* emplify.unaux.com
+## 🌐 Live Demo
+
+🔗 **Live Project:**
+https://emplify.unaux.com
+
 
 
