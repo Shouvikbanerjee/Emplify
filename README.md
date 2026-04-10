@@ -57,5 +57,15 @@
 🔗 **Live Project:**
 https://emplify.unaux.com
 
+## 🔐 Demo Admin Credentials (For Testing Only)
+* Username: bikas123
+* Password: bikas@123
+
+⚠️ These credentials are for demo purposes only. Do not use in production.
 
 
+## 👨‍💻 Author
+
+* Shouvik Banerjee
+* 💼 Developer | PHP Enthusiast
+* 🌐 https://github.com/Shouvikbanerjee
